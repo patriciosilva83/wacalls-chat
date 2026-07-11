@@ -26,15 +26,21 @@ type server struct {
 	loginLimit *loginLimiter
 	queues     *queueStore
 	tags       *tagStore
-	kanban     *kanbanStore
-	sessStore  *sessionStore
-	chatMeta   *chatMetaStore
-	calls      *callStore
-	recSigner  *recordingSigner
-	settings   *settingsStore
-	db         *sql.DB
-	authStream *authStreamHub
-	cache      cache.Cache
+	kanban        *kanbanStore
+	sessStore     *sessionStore
+	chatMeta      *chatMetaStore
+	calls         *callStore
+	campaigns     *campaignStore
+	quickMessages *quickMessageStore
+	announcements *announcementStore
+	scheduledMsgs *ScheduledMessageStore
+	dialer        *campaignDialer
+	recSigner     *recordingSigner
+	settings      *settingsStore
+	db            *sql.DB
+	authStream    *authStreamHub
+	cache         cache.Cache
+	schedDispatcher *ScheduledDispatcher
 }
 
 func openDB(dbPath string) (*sql.DB, error) {
@@ -142,6 +148,22 @@ func newServer(ctx context.Context, dbPath, staticDir string, maxCalls int, log 
 	if err != nil {
 		return nil, err
 	}
+	campaigns := newCampaignStore(db)
+	if err := campaigns.init(ctx); err != nil {
+		return nil, err
+	}
+	quickMsgs := newQuickMessageStore(db)
+	if err := quickMsgs.init(ctx); err != nil {
+		return nil, err
+	}
+	anns := newAnnouncementStore(db)
+	if err := anns.init(ctx); err != nil {
+		return nil, err
+	}
+	schedMsgs := NewScheduledMessageStore(db)
+	if err := schedMsgs.Init(ctx); err != nil {
+		return nil, err
+	}
 	kanban, err := newKanbanStore(ctx, db)
 	if err != nil {
 		return nil, err
@@ -201,6 +223,18 @@ func newServer(ctx context.Context, dbPath, staticDir string, maxCalls int, log 
 			hub.Revoke(t)
 		}
 	}
-	srv := &server{broker: broker, sessions: mgr, log: log, staticDir: staticDir, flows: flows, flowExec: exec, flowTracer: tracer, messages: messages, auth: auth, loginLimit: newLoginLimiter(), queues: queues, tags: tags, kanban: kanban, sessStore: store, chatMeta: chatMeta, calls: callStore, recSigner: signer, settings: settings, db: db, authStream: hub, cache: cch}
+	srv := &server{broker: broker, sessions: mgr, log: log, staticDir: staticDir, flows: flows, flowExec: exec, flowTracer: tracer, messages: messages, auth: auth, loginLimit: newLoginLimiter(), queues: queues, tags: tags,
+		campaigns:     campaigns,
+		quickMessages: quickMsgs,
+		announcements: anns,
+		scheduledMsgs: schedMsgs,
+		kanban:        kanban,
+		sessStore:     store, chatMeta: chatMeta, calls: callStore, recSigner: signer, settings: settings, db: db, authStream: hub, cache: cch}
+	srv.dialer = newCampaignDialer(srv)
+	srv.dialer.start()
+
+	srv.schedDispatcher = newScheduledDispatcher(srv)
+	srv.schedDispatcher.start(ctx)
+
 	return srv, nil
 }
