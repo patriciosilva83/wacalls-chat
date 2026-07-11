@@ -78,6 +78,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
         queueId,
         redirectMinutes: session.redirectMinutes ?? 0,
         flowId,
+        chatFlowId: session.chatFlowId ?? "",
         greetingMessage: session.greetingMessage ?? "",
         completionMessage: session.completionMessage ?? "",
         outOfHoursMessage: session.outOfHoursMessage ?? "",
