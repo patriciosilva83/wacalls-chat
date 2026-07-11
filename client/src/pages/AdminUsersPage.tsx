@@ -455,10 +455,12 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
                 />
               </div>
               <div>
-                <Label htmlFor="u-cpf">CPF</Label>
+                <Label htmlFor="u-cpf">CPF/CNPJ</Label>
                 <Input
                   id="u-cpf"
                   value={form.cpf}
+                  placeholder="CPF ou CNPJ Alfanumérico"
+                  maxLength={18}
                   onChange={(e) => setForm({ ...form, cpf: e.target.value })}
                 />
               </div>

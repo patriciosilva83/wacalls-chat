@@ -139,6 +139,12 @@ export const setCompanyActive = (id: string, active: boolean) =>
 export const deleteCompany = (id: string) =>
   req<void>(`/api/companies/${id}`, { method: "DELETE" });
 
+export const updateCompanyFeatures = (id: string, planFeatures: string) =>
+  req<void>(`/api/companies/${id}/features`, {
+    method: "PUT",
+    body: JSON.stringify({ planFeatures }),
+  });
+
 export interface CompanySubscription {
   userId: string;
   planId: string;

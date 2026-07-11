@@ -63,6 +63,12 @@ func (s *Session) handleWAMessage(evt *events.Message) {
 	}
 	s.upsertChatMeta(row, evt.Info.PushName, evt.Info.IsGroup)
 	s.mgr.broker.emitMessage(row)
+	evtType := "message.received"
+	if row.FromMe {
+		evtType = "message.sent"
+	}
+	s.dispatchWebhook(evtType, row)
+	s.syncMessageToChatwoot(row)
 	// If the customer is answering a previously-sent satisfaction survey,
 	// capture the score and skip the regular flow routing for this reply.
 	if captureRatingReply(s.mgr.appCtx, s.mgr.chatMeta, s.log, s.id, row) {
@@ -782,6 +788,8 @@ func (s *server) handleChatSend(w http.ResponseWriter, r *http.Request) {
 	}
 	s.markChatOpen(r.Context(), sess, row.ChatJID, user)
 	s.broker.emitMessage(row)
+	sess.dispatchWebhook("message.sent", row)
+	sess.syncMessageToChatwoot(row)
 	writeJSON(w, http.StatusOK, map[string]any{"message": row})
 }
 
@@ -1397,6 +1405,8 @@ func (s *server) handleChatMedia(w http.ResponseWriter, r *http.Request) {
 	_ = s.messages.Insert(r.Context(), row)
 	s.markChatOpen(r.Context(), sess, row.ChatJID, currentUserFromReq(r))
 	s.broker.emitMessage(row)
+	sess.dispatchWebhook("message.sent", row)
+	sess.syncMessageToChatwoot(row)
 	if u != nil {
 		s.bumpWeeklyUsage(r.Context(), u.ID, "free_chats")
 	}

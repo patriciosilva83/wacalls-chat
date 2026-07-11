@@ -8,36 +8,33 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  MessageCircle,
-  BarChart3,
-  ShieldCheck,
+  Building2,
+  FileText,
   Sparkles,
 } from "lucide-react";
+import { signup } from "@/services/auth";
 import { useAuth } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ForgotPasswordDialog } from "@/components/auth/ForgotPasswordDialog";
 import { readCachedWhitelabel, subscribeWhitelabel } from "@/lib/whitelabel";
 import * as settingsApi from "@/services/settings";
 
-// OBS: Este projeto é Open Source. Sinta-se livre para usar, modificar e contribuir.
-// Distribuído sob licença open source — código aberto para a comunidade.
-export const LoginPage = () => {
+export const SignupPage = () => {
   const user = useAuth((s) => s.user);
   const loading = useAuth((s) => s.loading);
-  const login = useAuth((s) => s.login);
   const refresh = useAuth((s) => s.refresh);
-
+  
   const [wl, setWl] = useState<settingsApi.Whitelabel | null>(
     () => (readCachedWhitelabel() as settingsApi.Whitelabel | null) ?? null,
   );
 
-  const [email, setEmail] = useState("admin@pontodosoftware.shop");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [cpf, setCpf] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,15 +64,37 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password || !companyName || !cpf) {
+      toast.error("Por favor, preencha todos os campos.");
+      return;
+    }
+    
+    // Sanitize CPF/CNPJ to be alphanumeric
+    const cleanCpf = cpf.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    if (cleanCpf.length !== 11 && cleanCpf.length !== 14) {
+      toast.error("O documento deve ser um CPF (11 dígitos) ou CNPJ (14 caracteres).");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
-      toast.success("Bem-vindo!");
-      navigate("/chats", { replace: true });
+      const res = await signup({
+        email: email.trim(),
+        password,
+        companyName: companyName.trim(),
+        cpf: cleanCpf,
+      });
+
+      if (res.needsVerification) {
+        toast.success("Conta criada! Por favor, ative sua conta.");
+        navigate("/login", { replace: true });
+      } else {
+        toast.success("Conta criada com sucesso! Faça seu login.");
+        navigate("/login", { replace: true });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error("Falha no login", { description: msg });
+      toast.error("Falha ao criar conta", { description: msg });
     } finally {
       setSubmitting(false);
     }
@@ -111,26 +130,11 @@ export const LoginPage = () => {
 
           <div className="relative z-10 space-y-5">
             <h2 className="text-3xl font-semibold leading-tight tracking-tight">
-              Converse, ligue e converta — <span className="opacity-80">tudo em uma única tela.</span>
+              Crie sua conta agora — <span className="opacity-80">e centralize todo o atendimento em uma única tela.</span>
             </h2>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-3">
-                <MessageCircle className="mt-0.5 h-4 w-4 opacity-90" />
-                <span>WhatsApp multi-conexão com filas, tags e histórico completo.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <PhoneCall className="mt-0.5 h-4 w-4 opacity-90" />
-                <span>Chamadas VoIP integradas ao contato — sem trocar de app.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <BarChart3 className="mt-0.5 h-4 w-4 opacity-90" />
-                <span>Relatórios em tempo real de atendimentos, filas e ligações.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-4 w-4 opacity-90" />
-                <span>Sessões criptografadas e controle de acesso por perfil.</span>
-              </li>
-            </ul>
+            <p className="text-sm opacity-90 max-w-md">
+              Tenha múltiplos números de WhatsApp conectados, distribuição por filas, relatórios detalhados e agentes eficientes para alavancar a produtividade da sua equipe.
+            </p>
           </div>
 
           <div className="relative z-10 flex items-center gap-2 text-xs opacity-80">
@@ -139,7 +143,7 @@ export const LoginPage = () => {
           </div>
         </aside>
 
-        {/* Login card */}
+        {/* Signup card */}
         <div className="mx-auto w-full max-w-md">
           <div className="rounded-2xl border bg-card/80 p-8 shadow-xl backdrop-blur-xl">
             <div className="mb-6 flex flex-col items-center gap-3 text-center lg:hidden">
@@ -152,20 +156,53 @@ export const LoginPage = () => {
               )}
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">{brandName}</h1>
-                <p className="text-sm text-muted-foreground">Entre para acessar sua conta</p>
+                <p className="text-sm text-muted-foreground">Cadastre sua empresa</p>
               </div>
             </div>
 
             <div className="mb-6 hidden text-center lg:block">
-              <h1 className="text-2xl font-semibold tracking-tight">Entrar na sua conta</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Criar sua conta</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Use suas credenciais para acessar o painel.
+                Insira as informações da sua empresa para começar.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="companyName">Nome da Empresa</Label>
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="companyName"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                    className="h-11 pl-9"
+                    placeholder="Minha Empresa Ltda"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF ou CNPJ (apenas letras e números)</Label>
+                <div className="relative">
+                  <FileText className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="cpf"
+                    type="text"
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value)}
+                    required
+                    className="h-11 pl-9"
+                    placeholder="CPF ou CNPJ Alfanumérico"
+                    maxLength={18}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail Corporativo</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -182,13 +219,13 @@ export const LoginPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Senha (mínimo 8 caracteres)</Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -214,38 +251,33 @@ export const LoginPage = () => {
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Entrando...
+                    Criando conta...
                   </>
                 ) : (
-                  "Entrar"
+                  "Criar Conta"
                 )}
               </Button>
             </form>
 
             <p className="mt-4 text-center text-sm">
-              Não tem uma conta?{" "}
-              <Link to="/signup" className="font-semibold text-primary hover:underline">
-                Cadastrar Empresa
+              Já tem uma conta?{" "}
+              <Link to="/login" className="font-semibold text-primary hover:underline">
+                Entrar
               </Link>
             </p>
 
             <p className="mt-6 text-center text-xs text-muted-foreground">
-              Ao entrar, você concorda com os Termos de uso e a Política de privacidade.
+              Ao se cadastrar, você concorda com os Termos de uso e a Política de privacidade.
             </p>
           </div>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
             © {new Date().getFullYear()} {brandName} · Todos os direitos reservados
           </p>
-          <p className="mt-1 text-center text-xs font-medium text-primary">
-            Este é um projeto Open Source 💚
-          </p>
         </div>
       </div>
-
-      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
     </div>
   );
 };
 
-export default LoginPage;
+export default SignupPage;

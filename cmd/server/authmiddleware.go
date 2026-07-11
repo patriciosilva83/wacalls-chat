@@ -9,7 +9,7 @@ import (
 // SuperAdminEmail identifies the SaaS owner account that has access to
 // global Settings (plans, whitelabel, options, companies management).
 // Regular admin users from other companies do NOT have this access.
-const SuperAdminEmail = "admin@equipechat.com"
+const SuperAdminEmail = "admin@pontodosoftware.shop"
 
 type ctxKey int
 
@@ -113,8 +113,8 @@ func (s *server) resolveUser(r *http.Request) *currentUser {
 func (s *server) requireAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u := s.resolveUser(r)
-		if u == nil {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		if u == nil || !u.Active {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "conta desativada, contate o administrador"})
 			return
 		}
 		ctx := context.WithValue(r.Context(), ctxUserKey, u)

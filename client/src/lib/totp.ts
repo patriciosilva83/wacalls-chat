@@ -3,7 +3,7 @@
 
 import { Secret, TOTP } from "otpauth";
 
-const ISSUER = "VozZap";
+const ISSUER = "Ponto do Software";
 
 export type TwoFASetup = {
   secret: string;          // base32 secret

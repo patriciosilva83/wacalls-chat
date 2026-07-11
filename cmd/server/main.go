@@ -19,7 +19,7 @@ func main() {
 	staticDir := flag.String("static", "", "static client directory (optional; auto-detect 'dist' or 'client/dist')")
 	debug := flag.Bool("debug", false, "verbose logging")
 	maxCalls := flag.Int("max-calls-per-session", 8, "max concurrent calls per session (0 = unlimited)")
-	seedAdminEmail := flag.String("seed-admin-email", "wacalls@admin.com", "default admin email created on first run (empty to disable)")
+	seedAdminEmail := flag.String("seed-admin-email", "admin@pontodosoftware.shop", "default admin email created on first run (empty to disable)")
 	seedAdminPass := flag.String("seed-admin-password", "admin", "default admin password created on first run")
 	flag.Parse()
 

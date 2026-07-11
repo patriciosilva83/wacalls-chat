@@ -51,8 +51,8 @@ Abra http://localhost:5173/ e faça login:
 
 | Campo | Valor |
 |-------|-------|
-| Email | `admin@equipechat.com` |
-| Senha | `adminpro` |
+| Email | `admin@pontodosoftware.shop` |
+| Senha | `admin` |
 
 > Troque a senha após o primeiro login.
 
@@ -85,7 +85,7 @@ go run ./cmd/server  # sobe API em http://localhost:8080
 Você verá:
 
 ```
-default admin created email=admin@equipechat.com
+default admin created email=admin@pontodosoftware.shop
 HTTP server listening addr=:8080
 ```
 

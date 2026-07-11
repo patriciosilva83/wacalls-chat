@@ -67,8 +67,7 @@ func clientIP(r *http.Request) string {
 }
 
 func (s *server) registerAuthRoutes(mux *http.ServeMux) {
-	// Signup público desabilitado: cadastro de usuários é feito apenas pelo admin em /api/users.
-	// mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
+	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	mux.HandleFunc("GET /api/auth/me", s.handleMe)
@@ -99,6 +98,7 @@ func (s *server) registerAuthRoutes(mux *http.ServeMux) {
 	// tenant admin only manages their own sub-users via /api/users.
 	mux.HandleFunc("GET /api/companies", s.requireSuperAdmin(s.handleListCompanies))
 	mux.HandleFunc("POST /api/companies/{id}/active", s.requireSuperAdmin(s.handleSetActive))
+	mux.HandleFunc("PUT /api/companies/{id}/features", s.requireSuperAdmin(s.handleUpdateFeatures))
 	mux.HandleFunc("DELETE /api/companies/{id}", s.requireSuperAdmin(s.handleDeleteUser))
 }
 
@@ -205,6 +205,7 @@ func (s *server) handleMe(w http.ResponseWriter, r *http.Request) {
 		"avatarUrl":   u.AvatarURL,
 		"permissions": u.Permissions,
 		"parentId":    u.ParentID,
+		"planFeatures": u.PlanFeatures,
 	}})
 }
 
@@ -249,6 +250,27 @@ func (s *server) handleListCompanies(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"users": out})
+}
+
+func (s *server) handleUpdateFeatures(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id required"})
+		return
+	}
+	var body struct {
+		PlanFeatures string `json:"planFeatures"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		return
+	}
+	_, err := s.auth.db.ExecContext(r.Context(), `UPDATE users SET plan_features = ? WHERE id = ?`, body.PlanFeatures, id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // assertSameTenant returns true when the actor is allowed to manage the

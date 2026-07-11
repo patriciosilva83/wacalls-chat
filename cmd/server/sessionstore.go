@@ -33,6 +33,16 @@ type sessionRow struct {
 	CloudTokenEnc     string
 	CloudAppSecretEnc string
 	CloudVerifyToken  string
+
+	// Chatwoot & Webhooks
+	ChatwootEnabled   bool
+	ChatwootURL       string
+	ChatwootToken     string
+	ChatwootAccountID string
+	ChatwootInboxID   string
+	WebhookEnabled    bool
+	WebhookURL        string
+	WebhookSecret     string
 }
 
 // CloudCreds returns decrypted credentials for a session in cloud mode.
@@ -80,6 +90,14 @@ func newSessionStore(ctx context.Context, db *sql.DB) (*sessionStore, error) {
 		`ALTER TABLE sessions ADD COLUMN cloud_token_enc TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE sessions ADD COLUMN cloud_app_secret_enc TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE sessions ADD COLUMN cloud_verify_token TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN chatwoot_enabled INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE sessions ADD COLUMN chatwoot_url TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN chatwoot_token TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN chatwoot_account_id TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN chatwoot_inbox_id TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN webhook_enabled INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE sessions ADD COLUMN webhook_url TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE sessions ADD COLUMN webhook_secret TEXT NOT NULL DEFAULT ''`,
 	}
 	for _, q := range migrations {
 		_, _ = db.ExecContext(ctx, q)
@@ -110,7 +128,9 @@ func (s *sessionStore) list(ctx context.Context) ([]sessionRow, error) {
 		COALESCE(out_of_hours_message, ''),
 		COALESCE(survey_enabled, 0), COALESCE(survey_prompt, ''),
 		COALESCE(mode, 'whatsmeow'), COALESCE(cloud_phone_id, ''), COALESCE(cloud_waba_id, ''),
-		COALESCE(cloud_token_enc, ''), COALESCE(cloud_app_secret_enc, ''), COALESCE(cloud_verify_token, '')
+		COALESCE(cloud_token_enc, ''), COALESCE(cloud_app_secret_enc, ''), COALESCE(cloud_verify_token, ''),
+		COALESCE(chatwoot_enabled, 0), COALESCE(chatwoot_url, ''), COALESCE(chatwoot_token, ''), COALESCE(chatwoot_account_id, ''), COALESCE(chatwoot_inbox_id, ''),
+		COALESCE(webhook_enabled, 0), COALESCE(webhook_url, ''), COALESCE(webhook_secret, '')
 		FROM sessions ORDER BY rowid`)
 	if err != nil {
 		return nil, err
@@ -120,16 +140,21 @@ func (s *sessionStore) list(ctx context.Context) ([]sessionRow, error) {
 	for rows.Next() {
 		var r sessionRow
 		var isDefault, allowGroups, surveyEnabled int
+		var chatwootEnabled, webhookEnabled int
 		if err := rows.Scan(&r.ID, &r.Name, &r.JID, &r.OwnerID,
 			&r.Color, &isDefault, &allowGroups, &r.IntegrationToken, &r.QueueID, &r.RedirectMinutes, &r.FlowID,
 			&r.ChatFlowID, &r.GreetingMessage, &r.CompletionMessage, &r.OutOfHoursMessage,
 			&surveyEnabled, &r.SurveyPrompt,
-			&r.Mode, &r.CloudPhoneID, &r.CloudWABAID, &r.CloudTokenEnc, &r.CloudAppSecretEnc, &r.CloudVerifyToken); err != nil {
+			&r.Mode, &r.CloudPhoneID, &r.CloudWABAID, &r.CloudTokenEnc, &r.CloudAppSecretEnc, &r.CloudVerifyToken,
+			&chatwootEnabled, &r.ChatwootURL, &r.ChatwootToken, &r.ChatwootAccountID, &r.ChatwootInboxID,
+			&webhookEnabled, &r.WebhookURL, &r.WebhookSecret); err != nil {
 			return nil, err
 		}
 		r.IsDefault = isDefault == 1
 		r.AllowGroups = allowGroups == 1
 		r.SurveyEnabled = surveyEnabled == 1
+		r.ChatwootEnabled = chatwootEnabled == 1
+		r.WebhookEnabled = webhookEnabled == 1
 		out = append(out, r)
 	}
 	return out, rows.Err()
@@ -245,6 +270,14 @@ type sessionUpdate struct {
 	OutOfHoursMessage string
 	SurveyEnabled     bool
 	SurveyPrompt      string
+	ChatwootEnabled   bool
+	ChatwootURL       string
+	ChatwootToken     string
+	ChatwootAccountID string
+	ChatwootInboxID   string
+	WebhookEnabled    bool
+	WebhookURL        string
+	WebhookSecret     string
 }
 
 func (s *sessionStore) update(ctx context.Context, id string, u sessionUpdate) error {
@@ -260,6 +293,14 @@ func (s *sessionStore) update(ctx context.Context, id string, u sessionUpdate) e
 	if u.SurveyEnabled {
 		srv = 1
 	}
+	cwt := 0
+	if u.ChatwootEnabled {
+		cwt = 1
+	}
+	whk := 0
+	if u.WebhookEnabled {
+		whk = 1
+	}
 	if u.IsDefault {
 		// Only one default per owner: clear other defaults belonging to same owner.
 		_, _ = s.db.ExecContext(ctx, `UPDATE sessions SET is_default = 0 WHERE id != ? AND owner_id = (SELECT owner_id FROM sessions WHERE id = ?)`, id, id)
@@ -267,11 +308,15 @@ func (s *sessionStore) update(ctx context.Context, id string, u sessionUpdate) e
 	res, err := s.db.ExecContext(ctx, `UPDATE sessions
 		SET name = ?, color = ?, is_default = ?, allow_groups = ?, queue_id = ?, redirect_minutes = ?, flow_id = ?, chat_flow_id = ?,
 		    greeting_message = ?, completion_message = ?, out_of_hours_message = ?,
-		    survey_enabled = ?, survey_prompt = ?
+		    survey_enabled = ?, survey_prompt = ?,
+		    chatwoot_enabled = ?, chatwoot_url = ?, chatwoot_token = ?, chatwoot_account_id = ?, chatwoot_inbox_id = ?,
+		    webhook_enabled = ?, webhook_url = ?, webhook_secret = ?
 		WHERE id = ?`,
 		strings.TrimSpace(u.Name), u.Color, def, grp, u.QueueID, u.RedirectMinutes, u.FlowID, u.ChatFlowID,
 		u.GreetingMessage, u.CompletionMessage, u.OutOfHoursMessage,
-		srv, strings.TrimSpace(u.SurveyPrompt), id)
+		srv, strings.TrimSpace(u.SurveyPrompt),
+		cwt, strings.TrimSpace(u.ChatwootURL), strings.TrimSpace(u.ChatwootToken), strings.TrimSpace(u.ChatwootAccountID), strings.TrimSpace(u.ChatwootInboxID),
+		whk, strings.TrimSpace(u.WebhookURL), strings.TrimSpace(u.WebhookSecret), id)
 	if err != nil {
 		return err
 	}

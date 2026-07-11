@@ -47,7 +47,8 @@ type UserRow struct {
 	Permissions      []string `json:"permissions"`
 	// ParentID identifies the tenant root that owns this sub-user. Empty
 	// for tenant roots (top-level signups) and for the super-admin.
-	ParentID string `json:"parentId,omitempty"`
+	ParentID     string `json:"parentId,omitempty"`
+	PlanFeatures string `json:"planFeatures"`
 }
 
 type authStore struct {
@@ -92,6 +93,7 @@ func newAuthStore(ctx context.Context, db *sql.DB) (*authStore, error) {
 		`ALTER TABLE users ADD COLUMN parent_id TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE users ADD COLUMN google_sub TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN plan_features TEXT NOT NULL DEFAULT 'kanban,flows,campaigns,quick-messages,announcements,scheduled-messages,reports'`,
 	}
 	for _, q := range migrations {
 		_, _ = db.ExecContext(ctx, q)
@@ -164,18 +166,18 @@ type SignupInput struct {
 
 var (
 	ErrCompanyRequired = errors.New("nome da empresa é obrigatório")
-	ErrCPFInvalid      = errors.New("CPF deve conter 11 dígitos")
+	ErrCPFInvalid      = errors.New("CPF deve conter 11 dígitos ou CNPJ 14 caracteres")
 	ErrInactive        = errors.New("conta desativada, contate o administrador")
 )
 
 func sanitizeCPF(s string) string {
 	var b strings.Builder
 	for _, r := range s {
-		if r >= '0' && r <= '9' {
+		if (r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
 			b.WriteRune(r)
 		}
 	}
-	return b.String()
+	return strings.ToUpper(b.String())
 }
 
 func (s *authStore) Signup(ctx context.Context, in SignupInput) (UserRow, error) {
@@ -194,15 +196,12 @@ func (s *authStore) Signup(ctx context.Context, in SignupInput) (UserRow, error)
 	if err != nil {
 		return UserRow{}, err
 	}
-	role := RoleUser
-	if count == 0 {
-		role = RoleAdmin
-	}
-	if role != RoleAdmin {
+	role := RoleAdmin
+	if count > 0 {
 		if companyName == "" {
 			return UserRow{}, ErrCompanyRequired
 		}
-		if len(cpf) != 11 {
+		if len(cpf) != 11 && len(cpf) != 14 {
 			return UserRow{}, ErrCPFInvalid
 		}
 	}
@@ -237,12 +236,12 @@ func (s *authStore) Signup(ctx context.Context, in SignupInput) (UserRow, error)
 
 func (s *authStore) Login(ctx context.Context, email, password string) (UserRow, string, error) {
 	email = normalizeEmail(email)
-	row := s.db.QueryRowContext(ctx, `SELECT id, email, password_hash, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,'') FROM users WHERE email = ?`, email)
+	row := s.db.QueryRowContext(ctx, `SELECT id, email, password_hash, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,''), COALESCE(plan_features, '') FROM users WHERE email = ?`, email)
 	var u UserRow
 	var hash string
 	var active int
 	var sigEnabled int
-	if err := row.Scan(&u.ID, &u.Email, &hash, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &hash, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name, &u.PlanFeatures); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserRow{}, "", ErrInvalidLogin
 		}
@@ -253,6 +252,9 @@ func (s *authStore) Login(ctx context.Context, email, password string) (UserRow,
 	}
 	u.Active = active == 1
 	u.SignatureEnabled = sigEnabled == 1
+	if u.ParentID != "" {
+		_ = s.db.QueryRowContext(ctx, `SELECT COALESCE(plan_features, '') FROM users WHERE id = ?`, u.ParentID).Scan(&u.PlanFeatures)
+	}
 	if !u.Active {
 		return UserRow{}, "", ErrInactive
 	}
@@ -306,13 +308,13 @@ func (s *authStore) RevokeToken(ctx context.Context, token string) error {
 
 func (s *authStore) UserByToken(ctx context.Context, token string) (UserRow, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT u.id, u.email, u.created_at, u.company_name, u.cpf, u.active, u.signature_enabled, u.signature_text, u.avatar_url, COALESCE(u.parent_id, ''), COALESCE(u.display_name,'')
+		SELECT u.id, u.email, u.created_at, u.company_name, u.cpf, u.active, u.signature_enabled, u.signature_text, u.avatar_url, COALESCE(u.parent_id, ''), COALESCE(u.display_name,''), COALESCE(u.plan_features, '')
 		FROM users u JOIN auth_tokens t ON t.user_id = u.id
 		WHERE t.token = ? AND t.expires_at > ?`, token, time.Now().Unix())
 	var u UserRow
 	var active int
 	var sigEnabled int
-	if err := row.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name, &u.PlanFeatures); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserRow{}, ErrUserNotFound
 		}
@@ -320,6 +322,9 @@ func (s *authStore) UserByToken(ctx context.Context, token string) (UserRow, err
 	}
 	u.Active = active == 1
 	u.SignatureEnabled = sigEnabled == 1
+	if u.ParentID != "" {
+		_ = s.db.QueryRowContext(ctx, `SELECT COALESCE(plan_features, '') FROM users WHERE id = ?`, u.ParentID).Scan(&u.PlanFeatures)
+	}
 	roles, err := s.RolesFor(ctx, u.ID)
 	if err != nil {
 		return UserRow{}, err
@@ -349,7 +354,7 @@ func (s *authStore) RolesFor(ctx context.Context, userID string) ([]string, erro
 }
 
 func (s *authStore) ListUsers(ctx context.Context) ([]UserRow, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, email, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,'') FROM users ORDER BY created_at ASC`)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, email, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,''), COALESCE(plan_features, '') FROM users ORDER BY created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +364,7 @@ func (s *authStore) ListUsers(ctx context.Context) ([]UserRow, error) {
 		var u UserRow
 		var active int
 		var sigEnabled int
-		if err := rows.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name, &u.PlanFeatures); err != nil {
 			return nil, err
 		}
 		u.Active = active == 1
@@ -388,7 +393,7 @@ func (s *authStore) ListUsers(ctx context.Context) ([]UserRow, error) {
 // with all sub-users whose parent_id matches it. Used for multi-tenant
 // isolation in the admin panels so company A never sees company B users.
 func (s *authStore) ListUsersByTenant(ctx context.Context, tenantID string) ([]UserRow, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, email, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,'') FROM users WHERE id = ? OR parent_id = ? ORDER BY created_at ASC`, tenantID, tenantID)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, email, created_at, company_name, cpf, active, signature_enabled, signature_text, avatar_url, COALESCE(parent_id, ''), COALESCE(display_name,''), COALESCE(plan_features, '') FROM users WHERE id = ? OR parent_id = ? ORDER BY created_at ASC`, tenantID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +402,7 @@ func (s *authStore) ListUsersByTenant(ctx context.Context, tenantID string) ([]U
 	for rows.Next() {
 		var u UserRow
 		var active, sigEnabled int
-		if err := rows.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.CreatedAt, &u.CompanyName, &u.CPF, &active, &sigEnabled, &u.Signature, &u.AvatarURL, &u.ParentID, &u.Name, &u.PlanFeatures); err != nil {
 			return nil, err
 		}
 		u.Active = active == 1
@@ -496,7 +501,10 @@ func (s *authStore) SetActive(ctx context.Context, userID string, active bool) e
 	if active {
 		v = 1
 	}
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET active = ? WHERE id = ?`, v, userID)
+	if _, err := s.db.ExecContext(ctx, `UPDATE users SET active = ? WHERE id = ?`, v, userID); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET active = ? WHERE parent_id = ?`, v, userID)
 	return err
 }
 

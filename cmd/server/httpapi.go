@@ -72,6 +72,13 @@ func (s *server) routes() http.Handler {
 	// com assinatura HMAC dedicado.
 	mediaFS := http.StripPrefix("/api/media/", safeFileServer(http.Dir("media")))
 	mux.Handle("GET /api/media/", s.requireAuth(func(w http.ResponseWriter, r *http.Request) {
+		u := currentUserFromReq(r)
+		rel := strings.TrimPrefix(r.URL.Path, "/api/media/")
+		rel = strings.Trim(rel, "/")
+		if !s.authorizeMediaAccess(r.Context(), u, rel) {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 		mediaFS.ServeHTTP(w, r)
 	}))
 
@@ -317,6 +324,14 @@ func (s *server) handleSessionUpdate(w http.ResponseWriter, r *http.Request) {
 		OutOfHoursMessage string `json:"outOfHoursMessage"`
 		SurveyEnabled     bool   `json:"surveyEnabled"`
 		SurveyPrompt      string `json:"surveyPrompt"`
+		ChatwootEnabled   bool   `json:"chatwootEnabled"`
+		ChatwootURL       string `json:"chatwootUrl"`
+		ChatwootToken     string `json:"chatwootToken"`
+		ChatwootAccountID string `json:"chatwootAccountId"`
+		ChatwootInboxID   string `json:"chatwootInboxId"`
+		WebhookEnabled    bool   `json:"webhookEnabled"`
+		WebhookURL        string `json:"webhookUrl"`
+		WebhookSecret     string `json:"webhookSecret"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
@@ -387,6 +402,14 @@ func (s *server) handleSessionUpdate(w http.ResponseWriter, r *http.Request) {
 		OutOfHoursMessage: body.OutOfHoursMessage,
 		SurveyEnabled:     body.SurveyEnabled,
 		SurveyPrompt:      body.SurveyPrompt,
+		ChatwootEnabled:   body.ChatwootEnabled,
+		ChatwootURL:       body.ChatwootURL,
+		ChatwootToken:     body.ChatwootToken,
+		ChatwootAccountID: body.ChatwootAccountID,
+		ChatwootInboxID:   body.ChatwootInboxID,
+		WebhookEnabled:    body.WebhookEnabled,
+		WebhookURL:        body.WebhookURL,
+		WebhookSecret:     body.WebhookSecret,
 	}); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -945,4 +968,92 @@ func (s *server) handleSignRecording(w http.ResponseWriter, r *http.Request) {
 		"downloadUrl": fmt.Sprintf("%s?exp=%d&sig=%s&download=1", base, exp, dlSig),
 		"expiresAt":   exp * 1000,
 	})
+}
+
+func (s *server) authorizeMediaAccess(ctx context.Context, u *currentUser, rel string) bool {
+	if u.IsSuperAdmin() {
+		return true
+	}
+	parts := strings.Split(rel, "/")
+	if len(parts) == 0 || parts[0] == "" {
+		return true
+	}
+	category := parts[0]
+
+	switch category {
+	case "whitelabel":
+		return true
+
+	case "avatars":
+		if len(parts) >= 2 && strings.HasPrefix(parts[1], "user-") {
+			userID := strings.TrimPrefix(parts[1], "user-")
+			if idx := strings.Index(userID, "."); idx != -1 {
+				userID = userID[:idx]
+			}
+			var parentID string
+			err := s.db.QueryRowContext(ctx, `SELECT parent_id FROM users WHERE id = ?`, userID).Scan(&parentID)
+			if err != nil {
+				return false
+			}
+			targetTenantID := parentID
+			if targetTenantID == "" {
+				targetTenantID = userID
+			}
+			return targetTenantID == u.TenantID()
+		}
+		return true
+
+	case "recordings":
+		if len(parts) >= 2 && strings.HasPrefix(parts[1], "call_") {
+			subparts := strings.Split(parts[1], "_")
+			if len(subparts) >= 2 {
+				sessionID := subparts[1]
+				var ownerID string
+				err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM sessions WHERE id = ?`, sessionID).Scan(&ownerID)
+				if err != nil {
+					return false
+				}
+				return ownerID == u.TenantID()
+			}
+		}
+		return false
+
+	case "in", "out":
+		if len(parts) >= 2 {
+			filename := parts[1]
+			idx := strings.Index(filename, "-")
+			if idx != -1 {
+				msgID := filename[:idx]
+				var sessionID string
+				err := s.db.QueryRowContext(ctx, `SELECT session_id FROM messages WHERE id = ?`, msgID).Scan(&sessionID)
+				if err == nil {
+					var ownerID string
+					err2 := s.db.QueryRowContext(ctx, `SELECT owner_id FROM sessions WHERE id = ?`, sessionID).Scan(&ownerID)
+					if err2 == nil {
+						return ownerID == u.TenantID()
+					}
+				}
+			}
+			var count int
+			err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM messages m JOIN sessions s ON m.session_id = s.id WHERE (m.media_url LIKE ? OR m.file_name LIKE ?) AND s.owner_id = ?`, "%"+filename+"%", "%"+filename+"%", u.TenantID()).Scan(&count)
+			if err == nil && count > 0 {
+				return true
+			}
+		}
+		return false
+
+	case "flowassets":
+		if len(parts) >= 2 {
+			flowID := parts[1]
+			var ownerID string
+			err := s.db.QueryRowContext(ctx, `SELECT owner_id FROM flows WHERE id = ?`, flowID).Scan(&ownerID)
+			if err != nil {
+				return false
+			}
+			return ownerID == u.TenantID()
+		}
+		return false
+	}
+
+	return true
 }

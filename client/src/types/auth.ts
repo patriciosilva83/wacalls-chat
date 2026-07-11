@@ -12,6 +12,7 @@ export type AuthUser = {
   signature?: string;
   permissions?: string[];
   parentId?: string;
+  planFeatures?: string;
 };
 
 export type MeResponse = {

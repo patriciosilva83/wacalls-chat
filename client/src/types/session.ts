@@ -21,4 +21,14 @@ export type SessionInfo = {
   outOfHoursMessage?: string;
   surveyEnabled?: boolean;
   surveyPrompt?: string;
+
+  // Chatwoot & Webhooks
+  chatwootEnabled?: boolean;
+  chatwootUrl?: string;
+  chatwootToken?: string;
+  chatwootAccountId?: string;
+  chatwootInboxId?: string;
+  webhookEnabled?: boolean;
+  webhookUrl?: string;
+  webhookSecret?: string;
 };

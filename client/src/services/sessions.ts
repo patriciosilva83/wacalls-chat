@@ -39,6 +39,14 @@ export type SessionUpdate = {
   outOfHoursMessage?: string;
   surveyEnabled?: boolean;
   surveyPrompt?: string;
+  chatwootEnabled?: boolean;
+  chatwootUrl?: string;
+  chatwootToken?: string;
+  chatwootAccountId?: string;
+  chatwootInboxId?: string;
+  webhookEnabled?: boolean;
+  webhookUrl?: string;
+  webhookSecret?: string;
 };
 
 export const updateSession = async (id: string, body: SessionUpdate): Promise<void> => {

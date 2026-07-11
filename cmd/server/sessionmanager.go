@@ -258,6 +258,14 @@ func (m *SessionManager) Restore(ctx context.Context) error {
 		s.outOfHoursMessage = row.OutOfHoursMessage
 		s.surveyEnabled = row.SurveyEnabled
 		s.surveyPrompt = row.SurveyPrompt
+		s.chatwootEnabled = row.ChatwootEnabled
+		s.chatwootURL = row.ChatwootURL
+		s.chatwootToken = row.ChatwootToken
+		s.chatwootAccountID = row.ChatwootAccountID
+		s.chatwootInboxID = row.ChatwootInboxID
+		s.webhookEnabled = row.WebhookEnabled
+		s.webhookURL = row.WebhookURL
+		s.webhookSecret = row.WebhookSecret
 		// Migration: older builds stored either a URA or a chatbot in flow_id.
 		// Split that into voice flow_id and chat_flow_id at runtime so calls only
 		// run URA flows and WhatsApp text only runs chatbot flows.
@@ -312,6 +320,14 @@ func newCloudSession(m *SessionManager, row sessionRow) *Session {
 	s.outOfHoursMessage = row.OutOfHoursMessage
 	s.surveyEnabled = row.SurveyEnabled
 	s.surveyPrompt = row.SurveyPrompt
+	s.chatwootEnabled = row.ChatwootEnabled
+	s.chatwootURL = row.ChatwootURL
+	s.chatwootToken = row.ChatwootToken
+	s.chatwootAccountID = row.ChatwootAccountID
+	s.chatwootInboxID = row.ChatwootInboxID
+	s.webhookEnabled = row.WebhookEnabled
+	s.webhookURL = row.WebhookURL
+	s.webhookSecret = row.WebhookSecret
 	s.mode = "cloud"
 	s.cloudPhoneID = row.CloudPhoneID
 	s.cloudWABAID = row.CloudWABAID
@@ -460,7 +476,12 @@ func (m *SessionManager) Pair(id string) error {
 		return fmt.Errorf("no session %s", id)
 	}
 	if s.client.Store.ID != nil {
-		return fmt.Errorf("session already paired")
+		s.client.Disconnect()
+		if err := s.client.Connect(); err != nil {
+			return fmt.Errorf("reconnect: %w", err)
+		}
+		m.log.Info("session reconnected via restart", "session", id)
+		return nil
 	}
 	s.replaceClient(whatsmeow.NewClient(m.container.NewDevice(), m.waLogger))
 	if err := s.startPairing(m.appCtx); err != nil {
@@ -505,6 +526,14 @@ func (m *SessionManager) Update(ctx context.Context, id string, u sessionUpdate)
 	s.outOfHoursMessage = u.OutOfHoursMessage
 	s.surveyEnabled = u.SurveyEnabled
 	s.surveyPrompt = u.SurveyPrompt
+	s.chatwootEnabled = u.ChatwootEnabled
+	s.chatwootURL = u.ChatwootURL
+	s.chatwootToken = u.ChatwootToken
+	s.chatwootAccountID = u.ChatwootAccountID
+	s.chatwootInboxID = u.ChatwootInboxID
+	s.webhookEnabled = u.WebhookEnabled
+	s.webhookURL = u.WebhookURL
+	s.webhookSecret = u.WebhookSecret
 	s.mu.Unlock()
 	m.broker.emitSessionList(m.infos())
 	return nil

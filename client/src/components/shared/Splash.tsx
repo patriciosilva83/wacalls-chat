@@ -94,9 +94,9 @@ export const Splash = ({
 
   if (!visible) return null;
 
-  const name = wl?.appName || "VozZap";
+  const name = wl?.appName || "Ponto do Software";
   const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
-  const brandLogo = (isDark ? wl?.logoDark : wl?.logoLight) || wl?.logoLight || wl?.logoDark;
+  const brandLogo = (isDark ? wl?.logoDark : wl?.logoLight) || wl?.logoLight || wl?.logoDark || "/logo.png";
 
   return (
     <div

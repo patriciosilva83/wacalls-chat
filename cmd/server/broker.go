@@ -60,6 +60,16 @@ type SessionInfo struct {
 	OutOfHoursMessage string `json:"outOfHoursMessage,omitempty"`
 	SurveyEnabled     bool   `json:"surveyEnabled,omitempty"`
 	SurveyPrompt      string `json:"surveyPrompt,omitempty"`
+
+	// Chatwoot & Webhooks
+	ChatwootEnabled   bool   `json:"chatwootEnabled"`
+	ChatwootURL       string `json:"chatwootUrl"`
+	ChatwootToken     string `json:"chatwootToken"`
+	ChatwootAccountID string `json:"chatwootAccountId"`
+	ChatwootInboxID   string `json:"chatwootInboxId"`
+	WebhookEnabled    bool   `json:"webhookEnabled"`
+	WebhookURL        string `json:"webhookUrl"`
+	WebhookSecret     string `json:"webhookSecret"`
 }
 
 type subscriber struct {

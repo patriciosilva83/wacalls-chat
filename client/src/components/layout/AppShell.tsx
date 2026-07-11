@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode, type ComponentType } from "react";
-import { BarChart3, ChevronDown, ChevronsLeft, ChevronsRight, Contact2, History, KanbanSquare, Layers, Maximize2, Megaphone, Menu as MenuIcon, MessageSquare, Minimize2, PhoneCall, Radio, Settings, ShoppingCart, Tag, Users2, Wifi, Workflow } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronsLeft, ChevronsRight, Contact2, History, KanbanSquare, Layers, Maximize2, Megaphone, Menu as MenuIcon, MessageSquare, Minimize2, PhoneCall, Radio, Settings, ShoppingCart, Tag, Users2, Wifi, Workflow, Bot, Zap, CalendarClock } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { UserMenu } from "./UserMenu";
@@ -60,15 +60,15 @@ const AppShellInner = ({ children }: { children: ReactNode }) => {
     return () => { alive = false; off(); };
   }, []);
   const isDark = theme === "dark" || (typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
-  const brandLogo = (isDark ? wl?.logoDark : wl?.logoLight) || wl?.logoLight || wl?.logoDark;
-  const brandName = wl?.appName || "VozZap";
+  const brandLogo = (isDark ? wl?.logoDark : wl?.logoLight) || wl?.logoLight || wl?.logoDark || "/logo.png";
+  const brandName = wl?.appName || "Ponto do Software";
   const isAdmin = !!user?.roles.includes("admin");
   // Settings (planos, whitelabel, opções, empresas globais) é exclusivo
   // do administrador do SaaS — outras empresas/admin não veem o item.
   const isSuperAdmin =
     !!user &&
     isAdmin &&
-    user.email.trim().toLowerCase() === "admin@equipechat.com";
+    user.email.trim().toLowerCase() === "admin@pontodosoftware.shop";
   // Carrega o plano ativo assim que o shell monta para que itens não cobertos
   // pelo plano fiquem ocultos imediatamente.
   const planLoaded = usePlanStore((s) => s.loaded);
@@ -124,19 +124,35 @@ const AppShellInner = ({ children }: { children: ReactNode }) => {
   const campaignChildren: (NavItem & { feat?: string })[] = [];
   const principal: (NavItem & { perm: Permission; feat?: string })[] = [
     { to: "/chats", icon: MessageSquare, label: t("nav.chats", { defaultValue: "Chat" }), badge: unreadTotal, perm: "chats" },
+    { to: "/kanban", icon: KanbanSquare, label: t("nav.kanban", { defaultValue: "Kanban" }), perm: "chats", feat: "kanban" },
     { to: "/contacts", icon: Contact2, label: t("nav.contacts", { defaultValue: "Contatos" }), perm: "chats" },
     { to: "/queues", icon: Users2, label: t("nav.queues", { defaultValue: "Filas" }), perm: "chats" },
+    { to: "/flows", icon: Bot, label: t("nav.flows", { defaultValue: "FlowBuilder" }), perm: "chats", feat: "flows" },
+    { to: "/campaigns", icon: PhoneCall, label: t("nav.dialer", { defaultValue: "Discador" }), perm: "chats", feat: "campaigns" },
+    { to: "/quick-messages", icon: Zap, label: t("nav.quickMessages", { defaultValue: "Respostas Rápidas" }), perm: "chats", feat: "quick-messages" },
+    { to: "/announcements", icon: Megaphone, label: t("nav.announcements", { defaultValue: "Mural de Avisos" }), perm: "chats", feat: "announcements" },
+    { to: "/scheduled-messages", icon: CalendarClock, label: t("nav.scheduled", { defaultValue: "Agendamentos" }), perm: "chats", feat: "scheduled-messages" },
     { to: "/connections", icon: Wifi, label: t("nav.connections", { defaultValue: "Conexões" }), perm: "connections" },
-    { to: "/reports", icon: BarChart3, label: t("nav.reports", { defaultValue: "Relatórios" }), perm: "chats" },
+    { to: "/reports", icon: BarChart3, label: t("nav.reports", { defaultValue: "Relatórios" }), perm: "chats", feat: "reports" },
   ];
   const aplicacoes: (NavItem & { perm: Permission; feat?: string })[] = [];
   if (isAdmin) {
     aplicacoes.push({ to: "/admin/users", icon: Contact2, label: t("nav.users", { defaultValue: "Usuários" }), perm: "chats" });
   }
   const filterAllowed = (arr: (NavItem & { perm: Permission; feat?: string })[]): NavItem[] =>
-    arr.filter((it) => hasPermission(user, it.perm));
+    arr.filter((it) => {
+      if (!hasPermission(user, it.perm)) return false;
+      if (it.feat) {
+        const allowed = (user?.planFeatures || "").split(",").map((s) => s.trim());
+        if (!allowed.includes(it.feat)) return false;
+      }
+      return true;
+    });
   const principalItems = filterAllowed(principal);
   const aplicacoesItems = filterAllowed(aplicacoes);
+  if (isSuperAdmin) {
+    aplicacoesItems.push({ to: "/admin/companies", icon: Layers, label: "Empresas" });
+  }
   const settingsItem: NavItem = { to: "/chats", icon: MessageSquare, label: t("nav.chats", { defaultValue: "Chat" }) };
 
   const isActive = (to: string) => loc.pathname === to || loc.pathname.startsWith(to + "/");

@@ -52,6 +52,16 @@ type Session struct {
 	cloudPhoneID      string
 	cloudWABAID       string
 	cloudConfigured   bool
+
+	// Chatwoot & Webhooks
+	chatwootEnabled   bool
+	chatwootURL       string
+	chatwootToken     string
+	chatwootAccountID string
+	chatwootInboxID   string
+	webhookEnabled    bool
+	webhookURL        string
+	webhookSecret     string
 }
 
 func newSession(mgr *SessionManager, id, name string, client *whatsmeow.Client) *Session {
@@ -144,6 +154,10 @@ func (s *Session) wireCall(cm *call.CallManager, callID string) {
 			s.noteCallEnded(c.CallID, c.StateData.EndReason)
 			s.removeCall(c.CallID)
 			s.mgr.broker.endCall(c.CallID, string(c.StateData.EndReason))
+			s.dispatchWebhook("call.status", CallRecord{
+				SessionID: s.id, CallID: c.CallID, Direction: mapDirection(c.Direction), Peer: c.PeerJid,
+				StartedAt: time.Now().UnixMilli(), Status: "ended",
+			})
 			return
 		}
 		// Inbound URA: as soon as the call enters Connecting (right after
@@ -183,11 +197,16 @@ func (s *Session) wireCall(cm *call.CallManager, callID string) {
 			rec.StartedAt = existing.StartedAt
 		}
 		s.mgr.broker.upsertCall(rec)
+		s.dispatchWebhook("call.status", rec)
 	}
 	cm.OnEnded = func(c *call.CallInfo) {
 		s.noteCallEnded(c.CallID, c.StateData.EndReason)
 		s.removeCall(c.CallID)
 		s.mgr.broker.endCall(c.CallID, string(c.StateData.EndReason))
+		s.dispatchWebhook("call.status", CallRecord{
+			SessionID: s.id, CallID: c.CallID, Direction: mapDirection(c.Direction), Peer: c.PeerJid,
+			StartedAt: time.Now().UnixMilli(), Status: "ended",
+		})
 	}
 	cm.OnPeerAudio = func(pcm16 []float32) {
 		ac, ok := s.reg.get(callID)
@@ -393,6 +412,14 @@ func (s *Session) info() SessionInfo {
 		GreetingMessage: s.greetingMessage, CompletionMessage: s.completionMessage,
 		OutOfHoursMessage: s.outOfHoursMessage,
 		SurveyEnabled:     s.surveyEnabled, SurveyPrompt: s.surveyPrompt,
+		ChatwootEnabled:   s.chatwootEnabled,
+		ChatwootURL:       s.chatwootURL,
+		ChatwootToken:     s.chatwootToken,
+		ChatwootAccountID: s.chatwootAccountID,
+		ChatwootInboxID:   s.chatwootInboxID,
+		WebhookEnabled:    s.webhookEnabled,
+		WebhookURL:        s.webhookURL,
+		WebhookSecret:     s.webhookSecret,
 	}
 }
 
@@ -486,10 +513,27 @@ func (s *Session) watchCallSetup(callID string, timeout time.Duration) {
 }
 
 func (s *Session) teardownAllCalls() {
+	var toEnd []string
 	for _, ac := range s.reg.drain() {
 		_ = ac.cm.EndCall(context.Background(), core.EndCallReasonUserEnded)
 		if ac.bridge != nil {
 			ac.bridge.Close()
+		}
+		if ci := ac.cm.CurrentCall(); ci != nil {
+			toEnd = append(toEnd, ci.CallID)
+		}
+	}
+	if s.mgr != nil && s.mgr.broker != nil {
+		s.mgr.broker.mu.RLock()
+		for id, c := range s.mgr.broker.calls {
+			if c.SessionID == s.id && c.Status != StatusEnded {
+				toEnd = append(toEnd, id)
+			}
+		}
+		s.mgr.broker.mu.RUnlock()
+
+		for _, id := range toEnd {
+			s.mgr.broker.endCall(id, "teardown")
 		}
 	}
 }
@@ -826,4 +870,11 @@ func itoa(n int64) string {
 		buf = append([]byte{'-'}, buf...)
 	}
 	return string(buf)
+}
+
+func mapDirection(d core.CallDirection) string {
+	if d == core.CallDirectionIncoming {
+		return "inbound"
+	}
+	return "outbound"
 }
