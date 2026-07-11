@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { updateSession } from "@/services/sessions";
 import { listQueues } from "@/services/queues";
+import { listFlows } from "@/services/flows";
 import type { SessionInfo } from "@/types/session";
 import type { Queue } from "@/types/queue";
+import type { FlowRow } from "@/types/flow";
 
 type Props = {
   open: boolean;
@@ -22,6 +24,8 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
   const [allowGroups, setAllowGroups] = useState(!!session.allowGroups);
   const [queueId, setQueueId] = useState(session.queueId ?? "");
   const [queues, setQueues] = useState<Queue[]>([]);
+  const [flowId, setFlowId] = useState(session.flowId ?? "");
+  const [flows, setFlows] = useState<FlowRow[]>([]);
   const [busy, setBusy] = useState(false);
 
   // Chatwoot state
@@ -40,6 +44,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
     if (!open) return;
     setAllowGroups(!!session.allowGroups);
     setQueueId(session.queueId ?? "");
+    setFlowId(session.flowId ?? "");
     setChatwootEnabled(!!session.chatwootEnabled);
     setChatwootUrl(session.chatwootUrl ?? "");
     setChatwootToken(session.chatwootToken ?? "");
@@ -50,6 +55,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
     setWebhookSecret(session.webhookSecret ?? "");
     setActiveTab("general");
     void listQueues().then(setQueues).catch(() => {});
+    void listFlows().then(setFlows).catch(() => {});
   }, [open, session]);
 
   const onSave = async () => {
@@ -71,7 +77,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
         allowGroups,
         queueId,
         redirectMinutes: session.redirectMinutes ?? 0,
-        flowId: session.flowId ?? "",
+        flowId,
         greetingMessage: session.greetingMessage ?? "",
         completionMessage: session.completionMessage ?? "",
         outOfHoursMessage: session.outOfHoursMessage ?? "",
@@ -171,6 +177,28 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
                 </select>
                 <p className="text-[11px] text-muted-foreground leading-snug">
                   Novas conversas são direcionadas para esta fila.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="cflow">Fluxo de URA (Voz)</Label>
+                <select
+                  id="cflow"
+                  value={flowId}
+                  onChange={(e) => setFlowId(e.target.value)}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  <option value="">— Sem fluxo (rejeitar/ignorar chamadas) —</option>
+                  {flows
+                    .filter((f) => f.enabled)
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} {f.trigger !== "inbound" ? `(${f.trigger})` : ""}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Selecione o fluxo (URA) para atender ligações. Somente fluxos ativados são listados.
                 </p>
               </div>
 

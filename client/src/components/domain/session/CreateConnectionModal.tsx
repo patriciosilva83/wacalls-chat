@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { createSession, updateSession } from "@/services/sessions";
 import { useSessions } from "@/stores/sessions";
 import { listQueues } from "@/services/queues";
+import { listFlows } from "@/services/flows";
 import { ensureQuota } from "@/lib/quota";
 import { toastError } from "@/lib/error-toast";
 import type { Queue } from "@/types/queue";
+import type { FlowRow } from "@/types/flow";
 
 type Props = {
   open: boolean;
@@ -27,6 +29,8 @@ export const CreateConnectionModal = ({ open, onOpenChange, onCreated }: Props) 
   const sessionsCount = sessions.length;
   const [name, setName] = useState("");
   const [queueId, setQueueId] = useState("");
+  const [flowId, setFlowId] = useState("");
+  const [flows, setFlows] = useState<FlowRow[]>([]);
   const [allowGroups, setAllowGroups] = useState(false);
   const [queues, setQueues] = useState<Queue[]>([]);
   const [busy, setBusy] = useState(false);
@@ -36,9 +40,11 @@ export const CreateConnectionModal = ({ open, onOpenChange, onCreated }: Props) 
     if (!open) return;
     setName("");
     setQueueId("");
+    setFlowId("");
     setAllowGroups(false);
     setError(null);
     void listQueues().then(setQueues).catch(() => {});
+    void listFlows().then(setFlows).catch(() => {});
   }, [open]);
 
   const onSubmit = async () => {
@@ -59,7 +65,7 @@ export const CreateConnectionModal = ({ open, onOpenChange, onCreated }: Props) 
           allowGroups,
           queueId,
           redirectMinutes: 0,
-          flowId: "",
+          flowId,
         });
       } catch {
         /* tolerate — instance is created either way */
@@ -138,6 +144,28 @@ export const CreateConnectionModal = ({ open, onOpenChange, onCreated }: Props) 
             </select>
             <p className="mt-1.5 text-xs text-muted-foreground">
               Novas conversas são direcionadas para esta fila.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="cflow">Fluxo de URA (Voz)</Label>
+            <select
+              id="cflow"
+              value={flowId}
+              onChange={(e) => setFlowId(e.target.value)}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">— Sem fluxo (rejeitar/ignorar chamadas) —</option>
+              {flows
+                .filter((f) => f.enabled)
+                .map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} {f.trigger !== "inbound" ? `(${f.trigger})` : ""}
+                  </option>
+                ))}
+            </select>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Selecione o fluxo (URA) para atender ligações. Somente fluxos ativados são listados.
             </p>
           </div>
 
