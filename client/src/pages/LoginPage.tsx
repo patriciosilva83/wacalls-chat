@@ -95,18 +95,23 @@ export const LoginPage = () => {
         <aside className="relative hidden overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/90 via-emerald-500/80 to-teal-600/90 p-10 text-primary-foreground shadow-2xl lg:flex lg:h-[640px] lg:flex-col lg:justify-between">
           <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-overlay [background-image:radial-gradient(circle_at_20%_20%,white_0,transparent_40%),radial-gradient(circle_at_80%_60%,white_0,transparent_35%)]" />
 
-          <div className="relative z-10 flex items-center gap-3">
+          <div className="relative z-10">
             {brandLogo ? (
-              <img src={brandLogo} alt={brandName} className="h-11 w-auto max-w-[150px] object-contain rounded-xl" />
+              <div className="flex flex-col gap-1.5 items-start">
+                <img src={brandLogo} alt={brandName} className="h-14 w-auto max-w-[220px] object-contain" />
+                <p className="text-xs opacity-80 tracking-wide mt-1">Atendimento &amp; chamadas em um só lugar</p>
+              </div>
             ) : (
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 backdrop-blur">
-                <PhoneCall className="h-5 w-5" />
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 backdrop-blur">
+                  <PhoneCall className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold tracking-tight">{brandName}</p>
+                  <p className="text-xs opacity-80">Atendimento &amp; chamadas em um só lugar</p>
+                </div>
               </div>
             )}
-            <div>
-              <p className="text-lg font-semibold tracking-tight">{brandName}</p>
-              <p className="text-xs opacity-80">Atendimento &amp; chamadas em um só lugar</p>
-            </div>
           </div>
 
           <div className="relative z-10 space-y-5">
@@ -135,7 +140,7 @@ export const LoginPage = () => {
 
           <div className="relative z-10 flex items-center gap-2 text-xs opacity-80">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>{brandName} — Gratuito</span>
+            <span>{brandName}</span>
           </div>
         </aside>
 
@@ -144,16 +149,21 @@ export const LoginPage = () => {
           <div className="rounded-2xl border bg-card/80 p-8 shadow-xl backdrop-blur-xl">
             <div className="mb-6 flex flex-col items-center gap-3 text-center lg:hidden">
               {brandLogo ? (
-                <img src={brandLogo} alt={brandName} className="h-14 w-auto max-w-[180px] object-contain rounded-2xl" />
-              ) : (
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-                  <PhoneCall className="h-6 w-6" />
+                <div className="flex flex-col items-center gap-1.5">
+                  <img src={brandLogo} alt={brandName} className="h-14 w-auto max-w-[200px] object-contain" />
+                  <p className="text-xs text-muted-foreground mt-1">Atendimento &amp; chamadas em um só lugar</p>
                 </div>
+              ) : (
+                <>
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+                    <PhoneCall className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">{brandName}</h1>
+                    <p className="text-sm text-muted-foreground">Entre para acessar sua conta</p>
+                  </div>
+                </>
               )}
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">{brandName}</h1>
-                <p className="text-sm text-muted-foreground">Entre para acessar sua conta</p>
-              </div>
             </div>
 
             <div className="mb-6 hidden text-center lg:block">
