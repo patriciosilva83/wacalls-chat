@@ -126,9 +126,26 @@ Na raiz do projeto (ou no diretório onde o binário roda), configure o arquivo 
 # Banco de dados (padrão SQLite)
 DB_DRIVER=sqlite
 
+# Ou PostgreSQL para ambientes de grande escala (Branch postgres-dev)
+# DB_DRIVER=postgres
+# DB_DSN=postgres://usuario:senha@localhost:5432/nome_banco?sslmode=disable
+
 # Redis opcional — Necessário apenas se você for rodar em Cluster/Multi-instâncias
 REDIS_URL=redis://:senha@127.0.0.1:6379/0
 ```
+
+### 🐳 Deploy & Testes Rápidos com Docker (PostgreSQL + Redis + App)
+
+Nesta branch `postgres-dev`, você pode rodar a aplicação inteira em containers orquestrados em segundos:
+
+```bash
+# 1. Certifique-se de que está na branch postgres-dev
+git checkout postgres-dev
+
+# 2. Inicie todos os containers (Go App, PostgreSQL 16 e Redis 7)
+docker-compose up --build -d
+```
+Acesse em: `http://localhost:8080` (o banco Postgres inicializa e cria todas as migrations automaticamente na porta `5432`).
 
 ---
 

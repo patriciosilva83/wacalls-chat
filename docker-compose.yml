@@ -12,10 +12,28 @@ services:
     volumes:
       - ./data:/data
     environment:
-      - DB_DRIVER=sqlite
+      # Use PostgreSQL as the database driver in this dev branch
+      - DB_DRIVER=postgres
+      - DB_DSN=postgres://wacalls_user:wacalls_pass@postgres:5432/wacalls_db?sslmode=disable
       - REDIS_URL=redis://redis:6379/0
+      # Auto-detect public IP helper
+      - WACALLS_PUBLIC_IP=auto
     depends_on:
+      - postgres
       - redis
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: wacalls-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=wacalls_user
+      - POSTGRES_PASSWORD=wacalls_pass
+      - POSTGRES_DB=wacalls_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
