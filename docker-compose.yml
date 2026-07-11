@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  wacalls:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wacalls-app
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - DB_DRIVER=sqlite
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: wacalls-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - ./redis_data:/data
+    ports:
+      - "6379:6379"
