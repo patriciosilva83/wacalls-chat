@@ -1,129 +1,31 @@
 // Package storage abstracts the SQL backend used by the WaCalls server.
+//
+// Two drivers are supported:
+//
+//   - "sqlite"  (default) — file-based, zero setup, fine up to ~30-80 active
+//     tenants. Uses modernc.org/sqlite (pure Go, no cgo).
+//   - "mariadb" (a.k.a. "mysql") — experimental app-store driver only.
+//     It is intentionally not enabled by the installer because the current
+//     whatsmeow sqlstore dependency supports SQLite/Postgres dialects, not
+//     MySQL/MariaDB. Use SQLite for the main database and Redis for cache/fanout.
+//
+// The same *sql.DB is fed to whatsmeow's sqlstore via the returned
+// WhatsmeowDriver name. For production installs this must remain "sqlite3".
 package storage
 
 import (
-	"context"
 	"database/sql"
-	"database/sql/driver"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/lib/pq"
 	_ "modernc.org/sqlite" // pure-Go sqlite driver
 )
-
-type TranslatedDriver struct {
-	parent driver.Driver
-}
-
-func (d *TranslatedDriver) Open(name string) (driver.Conn, error) {
-	conn, err := d.parent.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	return &TranslatedConn{conn: conn}, nil
-}
-
-type TranslatedConn struct {
-	conn driver.Conn
-}
-
-func (c *TranslatedConn) Prepare(query string) (driver.Stmt, error) {
-	return c.conn.Prepare(TranslateQuery("postgres", query))
-}
-
-func (c *TranslatedConn) Close() error {
-	return c.conn.Close()
-}
-
-func (c *TranslatedConn) Begin() (driver.Tx, error) {
-	return c.conn.Begin()
-}
-
-func (c *TranslatedConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	if bt, ok := c.conn.(driver.ConnBeginTx); ok {
-		return bt.BeginTx(ctx, opts)
-	}
-	return c.conn.Begin()
-}
-
-func (c *TranslatedConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	if prep, ok := c.conn.(driver.ConnPrepareContext); ok {
-		return prep.PrepareContext(ctx, TranslateQuery("postgres", query))
-	}
-	return c.conn.Prepare(TranslateQuery("postgres", query))
-}
-
-func (c *TranslatedConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	if execer, ok := c.conn.(driver.ExecerContext); ok {
-		return execer.ExecContext(ctx, TranslateQuery("postgres", query), args)
-	}
-	if execer, ok := c.conn.(driver.Execer); ok {
-		dargs, err := namedValuesToValues(args)
-		if err != nil {
-			return nil, err
-		}
-		return execer.Exec(TranslateQuery("postgres", query), dargs)
-	}
-	return nil, driver.ErrSkip
-}
-
-func (c *TranslatedConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if queryer, ok := c.conn.(driver.QueryerContext); ok {
-		return queryer.QueryContext(ctx, TranslateQuery("postgres", query), args)
-	}
-	if queryer, ok := c.conn.(driver.Queryer); ok {
-		dargs, err := namedValuesToValues(args)
-		if err != nil {
-			return nil, err
-		}
-		return queryer.Query(TranslateQuery("postgres", query), dargs)
-	}
-	return nil, driver.ErrSkip
-}
-
-func namedValuesToValues(named []driver.NamedValue) ([]driver.Value, error) {
-	dargs := make([]driver.Value, len(named))
-	for i, nv := range named {
-		dargs[i] = nv.Value
-	}
-	return dargs, nil
-}
-
-func init() {
-	sql.Register("postgres-translated", &TranslatedDriver{
-		parent: &pq.Driver{},
-	})
-}
-
-// TranslateQuery translates SQLite parameter placeholders "?" to PostgreSQL "$1", "$2", ...
-func TranslateQuery(driverName, query string) string {
-	if driverName != "postgres" && driverName != "postgresql" {
-		return query
-	}
-	var sb strings.Builder
-	paramNum := 1
-	for {
-		idx := strings.Index(query, "?")
-		if idx == -1 {
-			sb.WriteString(query)
-			break
-		}
-		sb.WriteString(query[:idx])
-		sb.WriteString("$")
-		sb.WriteString(strconv.Itoa(paramNum))
-		paramNum++
-		query = query[idx+1:]
-	}
-	return sb.String()
-}
 
 // Config selects the backend. Zero value falls back to a file-based SQLite
 // instance at the provided SQLitePath.
 type Config struct {
-	Driver     string // "sqlite" (default), "postgres" or "mariadb"/"mysql"
+	Driver     string // "sqlite" (default) or "mariadb"/"mysql"
 	DSN        string // backend-specific DSN; for sqlite, leave empty and use SQLitePath
 	SQLitePath string // path to the sqlite database file (sqlite driver only)
 }
@@ -155,20 +57,13 @@ func Open(cfg Config) (*sql.DB, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
+		// SQLite is a single-writer engine in this app; keep the pool at 1
+		// to serialise writes and avoid SQLITE_BUSY under load.
 		db.SetMaxOpenConns(1)
 		return db, "sqlite3", nil
-	case "postgres", "postgresql":
-		// Use our custom translated driver to parse SQLite syntax on the fly
-		db, err := sql.Open("postgres-translated", cfg.DSN)
-		if err != nil {
-			return nil, "", err
-		}
-		db.SetMaxOpenConns(25)
-		db.SetMaxIdleConns(5)
-		return db, "postgres", nil
 	case "mariadb", "mysql":
-		return nil, "", fmt.Errorf("storage: DB_DRIVER=%s is not supported by whatsmeow; use SQLite or PostgreSQL", driver)
+		return nil, "", fmt.Errorf("storage: DB_DRIVER=%s is not supported by this WaCalls build because whatsmeow does not accept the mysql dialect; remove DB_DRIVER/DB_DSN and use SQLite + Redis", driver)
 	default:
-		return nil, "", fmt.Errorf("storage: unknown DB_DRIVER %q (use sqlite or postgres)", driver)
+		return nil, "", fmt.Errorf("storage: unknown DB_DRIVER %q (use sqlite)", driver)
 	}
 }

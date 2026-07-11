@@ -31,7 +31,8 @@ type currentUser struct {
 	Permissions      []string
 	// ParentID is the tenant root this user belongs to ("" when the user
 	// is itself a tenant root or the super-admin).
-	ParentID string
+	ParentID     string
+	PlanFeatures string
 }
 
 func (u *currentUser) HasRole(r string) bool {
@@ -106,6 +107,7 @@ func (s *server) resolveUser(r *http.Request) *currentUser {
 		AvatarURL:        u.AvatarURL,
 		Permissions:      u.Permissions,
 		ParentID:         u.ParentID,
+		PlanFeatures:     u.PlanFeatures,
 	}
 }
 

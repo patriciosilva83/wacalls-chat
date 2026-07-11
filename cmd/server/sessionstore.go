@@ -66,9 +66,8 @@ func newSessionStore(ctx context.Context, db *sql.DB) (*sessionStore, error) {
 	}
 	// Idempotent migration: add owner_id if missing.
 	if _, err := db.ExecContext(ctx, `ALTER TABLE sessions ADD COLUMN owner_id TEXT NOT NULL DEFAULT ''`); err != nil {
-		errStr := err.Error()
-		if !strings.Contains(errStr, "duplicate column") && !strings.Contains(errStr, "already exists") {
-			// SQLite reports duplicate column, Postgres reports already exists; ignore.
+		if !strings.Contains(err.Error(), "duplicate column") {
+			// SQLite reports duplicate column when already added; ignore.
 		}
 	}
 	migrations := []string{

@@ -45,9 +45,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	publicIP := getPublicIP(ctx)
-	log.Info("server configuration", "public_ip", publicIP)
-
 	srv, err := newServer(ctx, *dbPath, *staticDir, *maxCalls, log)
 	if err != nil {
 		log.Error("startup failed", "err", err)

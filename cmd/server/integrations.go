@@ -227,7 +227,7 @@ func findOrCreateChatwootContact(ctx context.Context, client *http.Client, baseU
 	return 0, fmt.Errorf("unable to search or create chatwoot contact (status: %d)", resp.StatusCode)
 }
 
-func findOrCreateChatwootConversation(ctx context.Context, client *http.Client, baseURL, token, inboxID, contactID string) (int, error) {
+func findOrCreateChatwootConversation(ctx context.Context, client *http.Client, baseURL, token, inboxID string, contactID int) (int, error) {
 	// Search active conversations
 	convsURL := fmt.Sprintf("%s/contacts/%d/conversations", baseURL, contactID)
 	req, _ := http.NewRequestWithContext(ctx, "GET", convsURL, nil)

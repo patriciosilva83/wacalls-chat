@@ -9,7 +9,6 @@ require (
 	go.mau.fi/whatsmeow v0.0.0-20260622185415-5f04eac6dbbb
 	google.golang.org/protobuf v1.36.11
 	modernc.org/sqlite v1.53.0
-	github.com/lib/pq v1.10.9
 )
 
 require (
