@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=32&duration=2800&pause=800&color=25D366&center=true&vCenter=true&width=700&lines=%F0%9F%93%9E+WaCalls;WhatsApp+multi-conex%C3%A3o+em+Go+%2B+React;Chat+%C2%B7+Filas+%C2%B7+Contatos+%C2%B7+Relat%C3%B3rios;100%25+Open+Source+%F0%9F%92%9A" alt="WaCalls" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=32&duration=2800&pause=800&color=25D366&center=true&vCenter=true&width=700&lines=%F0%9F%93%9E+WaCalls+SaaS;WhatsApp+multi-conex%C3%A3o+SaaS+%2B+React;Chat+%C2%B7+Kanban+%C2%B7+Flowbuilder+%C2%B7+Webhooks;100%25+Open+Source+%F0%9F%92%9A" alt="WaCalls SaaS" />
 
 <br/>
 
-# 📞 WaCalls
+# 📞 WaCalls (Fork SaaS com Integrações)
 
 **Plataforma de atendimento WhatsApp multi-conexão em Go + React.**
-Chat, filas, contatos, conexões multi-número e relatórios — tudo em um único binário.
+Uma versão aprimorada da plataforma original com foco em controle comercial multi-tenant, integração externa (Chatwoot & Webhooks) e correções de produção.
 
 <br/>
 
@@ -19,181 +19,132 @@ Chat, filas, contatos, conexões multi-número e relatórios — tudo em um úni
 [![whatsmeow](https://img.shields.io/badge/whatsmeow-multi--device-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://github.com/tulir/whatsmeow)
 [![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](#-licença)
-[![Open Source](https://img.shields.io/badge/open--source-%E2%9C%94-brightgreen?style=for-the-badge)](#-licença)
 
 <br/>
 
-![Status](https://img.shields.io/badge/status-stable-success?style=flat-square)
+![Status](https://img.shields.io/badge/status-production--stable-success?style=flat-square)
 ![Made with love](https://img.shields.io/badge/made%20with-%E2%9D%A4-red?style=flat-square)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)
 
 <br/>
 
-<img src="https://user-images.githubusercontent.com/74038190/212284100-561aa473-3905-4a80-b561-0d28506553ee.gif" width="900" alt="banner" />
-
 </div>
 
 ---
 
-> 💚 **Projeto open source.** Código-fonte completo, sem telemetria, sem dependência de serviços externos pagos. Rode em sua própria VPS.
+> 💚 **Nota sobre o Fork:** Este projeto é um fork de [raphaelbat/wacalls-chat](https://github.com/raphaelbat/wacalls-chat) (que por sua vez descende do WaCalls core), trazendo melhorias comerciais para o modo SaaS, integrações de Webhook e Chatwoot nativas por conexão e estabilização de conexões e chamadas.
 
 ---
 
-## ✨ O que esta versão inclui
+## ✨ O que esta versão inclui (Diferenciais)
 
-Esta build entrega apenas as funcionalidades ativas no menu:
+Além das funções básicas de chat, usuários, filas e conexões por QR Code, esta versão implementa e reabilita:
 
-| Módulo | Rota | Descrição |
-|---|---|---|
-| 🔐 **Login** | `/login` | Autenticação por e-mail e senha. Admin padrão: `wacalls@admin.com` / `admin`. |
-| 💬 **Chat** | `/chats` | Conversas em tempo real, envio de mídia, encerramento de atendimento (sem exigir motivo). |
-| 👥 **Contatos** | `/contacts` | Lista, busca e edição de contatos sincronizados do WhatsApp. |
-| 🗂️ **Filas** | `/queues` | Distribuição de atendimentos por fila/setor. |
-| 📱 **Conexões** | `/connections` | Pareamento multi-número via QR Code, status e desconexão. |
-| 📊 **Relatórios** | `/reports` | Mensagens enviadas/recebidas, chamadas, tickets, tendência diária. |
-| 🛡️ **Usuários** | `/admin/users` | CRUD de usuários e perfis (apenas admin). |
+### ⚙️ 1. Integrações nativas por Conexão
+Configurável individualmente nas abas de cada conexão (Editar Conexão):
+*   💬 **Integração Chatwoot:** Sincronização automática bidirecional de conversas, envio e recebimento de mensagens e mídias em tempo real.
+*   🔗 **Webhooks Ativos (HMAC-SHA256):** Disparo de eventos HTTP POST assíncronos para integração com sistemas externos e ferramentas de automação (como N8N, Make, etc.).
+    *   `message.received` (Novas mensagens recebidas)
+    *   `message.sent` (Mensagens enviadas via painel/chat)
+    *   `call.status` (Eventos de chamadas: ligando, ativa, encerrada)
+    *   *Assinatura de Segurança:* Cada webhook envia o cabeçalho `X-WaCalls-Signature` contendo um hash HMAC gerado com o token configurado para garantir a autenticidade da requisição.
 
-### 🚫 O que **não** está incluso nesta versão
+### 🛡️ 2. Controle de Acesso e Recursos SaaS (Por Empresa)
+*   **Controle de Módulos Dinâmico:** No painel de Super Admin (`admin@pontodosoftware.shop`), o administrador do SaaS pode ligar/desligar de forma granular os recursos que cada empresa (tenant) parceira tem direito de usar.
+*   **Módulos que podem ser ativados/desativados por empresa:**
+    *   🗂️ **Kanban / Pipeline:** Quadro CRM para controle visual de funil de vendas.
+    *   🤖 **Flowbuilder (URA):** Construtor visual de fluxos de chatbot.
+    *   📞 **Discador / Campanhas:** Campanhas automáticas e disparos de áudio e texto em massa.
+    *   ⚡ **Respostas Rápidas:** Atalhos de mensagens pré-configuradas.
+    *   📣 **Mural de Avisos:** Quadro de avisos internos para operadores.
+    *   📅 **Agendamentos:** Programação de disparos de mensagens.
+    *   📊 **Relatórios:** Dashboards de desempenho.
+*   **Herança Automática:** Sub-usuários (operadores) de uma empresa herdam o perfil de recursos da empresa-mãe em tempo real ao se autenticarem.
 
-Para manter o deploy enxuto, foram removidos do menu (podem ser removidos também do `httpapi.go` se quiser build ainda menor):
-
-- ❌ Construtor de fluxo (Flowbuilder)
-- ❌ Kanban / Pipeline
-- ❌ Campanhas / Broadcast em massa
-- ❌ Agentes de IA
-- ❌ Chamadas VoIP nativas (whatsmeow VoIP)
-- ❌ TTS / gravação de chamadas
-- ❌ Billing / Financeiro
-- ❌ Cadastro público de novos usuários (só admin cria)
-- ❌ Avaliação do atendimento pelo cliente
+### 🐛 3. Correções e Estabilidade (Fixes)
+*   **WhatsApp Reconnect:** Corrigido o bug de erro `400` que impedia a reconexão automática ou manual de números desconectados do WhatsApp.
+*   **Chamadas VoIP (409 Conflict):** Tratada a duplicidade de chamadas no broker que causava instabilidades e travava conexões.
+*   **CPF/CNPJ Alfanumérico:** Suporte de validação adaptado para CPFs e CNPJs alfanuméricos para conformidade com registros especiais do SaaS.
 
 ---
 
 ## 🧱 Stack
 
-<div align="center">
-
-<img src="https://skillicons.dev/icons?i=go,react,vite,tailwind,ts,sqlite,redis,linux,bash&theme=dark" alt="stack" />
-
-</div>
-
-- ⚙️ **Backend:** Go 1.26+, SQLite embarcado (pure-Go, sem CGO), Redis opcional
-- 🎨 **Frontend:** React 19 + Vite 7 + Tailwind + shadcn/ui
-- 📲 **WhatsApp:** [whatsmeow](https://github.com/tulir/whatsmeow) (multi-device)
-- 🚀 **Deploy:** Binário único servindo API + frontend estático na mesma porta
+- ⚙️ **Backend:** Go 1.26+, SQLite embarcado (pure-Go, sem CGO), Redis opcional.
+- 🎨 **Frontend:** React 19 + Vite 7 + Tailwind + shadcn/ui.
+- 📲 **WhatsApp:** [whatsmeow](https://github.com/tulir/whatsmeow) (lib base Go multi-device).
+- 🚀 **Deploy:** Binário único empacotando a API e servindo os arquivos estáticos na mesma porta.
 
 ---
 
 ## ⚡ Instalação rápida (VPS Linux)
 
-Requisitos: **Go 1.26+**, **Node.js 20+**, **npm**, **unzip**, **systemd** (opcional).
+Requisitos mínimos: **Go 1.26+**, **Node.js 20+**, **npm**, **unzip**, **systemd**.
 
-### 1️⃣ Instalação direta pelo GitHub (recomendado)
+### 1️⃣ Instalação Automática via Fork
 
-> 📦 **Repositório oficial:** https://github.com/raphaelbat/wacalls-chat
-
-Copie e cole **este único comando** na sua VPS. Ele baixa o instalador e abre o **menu interativo** com as opções `1) GIT · 2) ZIP · 3) Sair`:
+Substitua `SEU_USUARIO` pelo seu usuário do GitHub no comando abaixo:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/raphaelbat/wacalls-chat/main/client/scripts/instalador_wacalls.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/patriciosilva83/wacalls-chat/main/client/scripts/instalador_wacalls.sh) \
+  git https://github.com/patriciosilva83/wacalls-chat.git main
 ```
 
-Você verá:
-
-```
-============================================================
-        WaCalls — Instalador / Atualizador
-============================================================
-  1) Instalar / Atualizar via GIT  (padrão — recomendado)
-  2) Instalar / Atualizar via ZIP  (arquivo local)
-  3) Sair
-============================================================
-Escolha uma opção [1-3] (padrão 1):
-```
-
-Prefere pular o menu e ir direto? Use os atalhos:
+### 2️⃣ Instalação Manual
 
 ```bash
-# Direto via GIT (repo/branch padrão)
-bash <(curl -fsSL https://raw.githubusercontent.com/raphaelbat/wacalls-chat/main/client/scripts/instalador_wacalls.sh) git
+# Clone e entre no diretório
+git clone https://github.com/patriciosilva83/wacalls-chat.git
+cd wacalls-chat
 
-# Direto via GIT com fork/branch específico
-bash <(curl -fsSL https://raw.githubusercontent.com/raphaelbat/wacalls-chat/main/client/scripts/instalador_wacalls.sh) \
-  git https://github.com/SEU_USUARIO/wacalls-chat.git main
-
-# Direto via ZIP local
-bash <(curl -fsSL https://raw.githubusercontent.com/raphaelbat/wacalls-chat/main/client/scripts/instalador_wacalls.sh) \
-  zip /root/wacalls.zip
-```
-
-### 2️⃣ Instalador via ZIP
-
-Se preferir enviar o pacote manualmente:
-
-```bash
-# copie wacalls.zip para /root da VPS, então:
-unzip -j /root/wacalls.zip 'wacalls/client/scripts/instalador_wacalls.sh' -d /root/
-chmod +x /root/instalador_wacalls.sh
-/root/instalador_wacalls.sh /root/wacalls.zip
-```
-
-### 3️⃣ Instalação manual
-
-```bash
-unzip wacalls.zip -d /opt/
-cd /opt/wacalls
-
-# Backend
+# Compile o Backend
 go build -o wacalls ./cmd/server
 
-# Frontend
+# Compile o Frontend
 cd client
 npm install
-npm run build   # gera client/dist (servido pelo binário)
+npm run build   # isso gera a pasta client/dist que o Go usará para servir a interface
 cd ..
 
-# Rodar
+# Execute a primeira vez para gerar o banco de dados e o Admin inicial
 ./wacalls -addr :8080 -db /var/lib/wacalls/wacalls.db
 ```
 
-Na primeira execução o admin padrão `wacalls@admin.com` / `admin` é criado.
-Para trocar:
+Na primeira execução, o administrador padrão `wacalls@admin.com` com a senha `admin` é semeado. Para rodar configurando o seu próprio administrador principal:
 
 ```bash
-./wacalls -seed-admin-email meu@email.com -seed-admin-password minhaSenha
+./wacalls -seed-admin-email admin@meusite.com -seed-admin-password SenhaSeguraAqui
 ```
 
 ---
 
-## 🔧 Configuração (`/root/wacalls/.env`)
+## 🔧 Configurações do Ambiente (`.env`)
 
-```bash
-# Banco (padrão SQLite; NÃO use mariadb — whatsmeow não suporta)
+Na raiz do projeto (ou no diretório onde o binário roda), configure o arquivo `.env`:
+
+```env
+# Banco de dados (padrão SQLite)
 DB_DRIVER=sqlite
 
-# Redis opcional — só necessário para múltiplas instâncias / cache compartilhado
+# Redis opcional — Necessário apenas se você for rodar em Cluster/Multi-instâncias
 REDIS_URL=redis://:senha@127.0.0.1:6379/0
 ```
 
-| Componente | SQLite (padrão) | SQLite + Redis |
-|---|---|---|
-| Empresas ativas | 30–80 | 150–220 |
-| Sessões WhatsApp simultâneas | 50–150 | 300–500 |
-| SSE fan-out | processo único | multi-instância |
-
 ---
 
-## 🛠️ Systemd
+## 🛠️ Executando com Systemd (Produção)
+
+Crie o arquivo de serviço `/etc/systemd/system/wacalls.service`:
 
 ```ini
 [Unit]
-Description=WaCalls
+Description=WaCalls SaaS Service
 After=network.target
 
 [Service]
 WorkingDirectory=/opt/wacalls
 EnvironmentFile=/opt/wacalls/.env
-ExecStart=/opt/wacalls/wacalls -addr :8080 -db /var/lib/wacalls/wacalls.db
+ExecStart=/opt/wacalls/wacalls -addr :55839 -db /www/wwwroot/wacalls-chat/wacalls.db
 Restart=always
 User=root
 
@@ -201,115 +152,28 @@ User=root
 WantedBy=multi-user.target
 ```
 
+Ative e inicialize:
 ```bash
+systemctl daemon-reload
 systemctl enable --now wacalls
-journalctl -u wacalls -f
+systemctl status wacalls
 ```
 
 ---
 
-## 🌐 Endpoints ativos
+## 👥 Contribuidores & Créditos Originais
 
-- `POST /api/auth/login` · `GET /api/auth/me` · `POST /api/auth/logout`
-- `GET/POST/PUT/DELETE /api/users` (admin)
-- `GET/POST /api/sessions/*` — conexões WhatsApp (QR, status)
-- `GET /api/sessions/{id}/chats/*` — chats e mensagens
-- `GET /api/contacts` — contatos
-- `GET/POST /api/queues` — filas de atendimento
-- `GET /api/reports/summary` — métricas do relatório
-- `GET /api/events` (SSE) — eventos em tempo real
+Este projeto estende e homenageia os mantenedores da base de desenvolvimento original:
 
-> ℹ️ Rotas dos módulos não usados (flows, kanban, campanhas, VoIP) continuam no código mas não são expostas pelo menu. Você pode removê-las editando `cmd/server/httpapi.go`.
+*   👨‍💻 [**JotaDev66**](https://github.com/jotadev66) — Lib base (WaCalls core)
+*   👨‍💻 [**jobasfernandes**](https://github.com/jobasfernandes) — Contribuidor
+*   🚀 [**Raphaelbat**](https://github.com/raphaelbat) — Implementação das conexões, fila, chat básico, mural e instalador original.
+*   📺 **Canal [Vem Fazer](https://youtube.com/@vemfazer)** — Pelo incentivo e disseminação da cultura de código aberto para a comunidade de telefonia e chat.
+
+Agradecemos e incentivamos contribuições! Se você gostou das customizações e novos recursos integrados por mim (**@patriciosilva83**), deixe sua ⭐ neste repositório.
 
 ---
-
-## 📁 Estrutura
-
-```
-wacalls/
-├── cmd/server/          # backend Go (HTTP + SSE + whatsmeow)
-├── internal/            # domínio: wa, voip (legacy), auth
-├── client/              # frontend React + Vite
-│   ├── src/pages/       # Login, Chats, Connections, Contacts, Queues, Reports, AdminUsers
-│   └── scripts/         # instalador_wacalls.sh
-├── dist/                # build de frontend embutido (fallback)
-├── go.mod / go.sum
-├── README.md            # este arquivo
-└── SETUP.md             # guia curto de deploy
-```
-
----
-
-## 🔄 Atualização
-
-Rode o mesmo instalador com um novo `wacalls.zip`. Ele faz backup automático de `wacalls.db`, `.env`, `data/` e `media/` em `/root/wacalls-backup-<timestamp>`.
-
----
-
-
-## 👥 Contributors
-
-This project builds on the work of:
-
-<div align="center">
-
-<a href="https://github.com/jotadev66"><img src="https://github.com/jotadev66.png" width="70" height="70" style="border-radius:8px" alt="jotadev66" /></a>
-<a href="https://github.com/jobasfernandes"><img src="https://github.com/jobasfernandes.png" width="70" height="70" style="border-radius:8px" alt="jobasfernandes" /></a>
-<a href="https://github.com/edgardmessias"><img src="https://github.com/edgardmessias.png" width="70" height="70" style="border-radius:8px" alt="edgardmessias" /></a>
-<a href="https://github.com/w3nder"><img src="https://github.com/w3nder.png" width="70" height="70" style="border-radius:8px" alt="w3nder" /></a>
-<a href="https://github.com/raphaelbat"><img src="https://github.com/raphaelbat.png" width="70" height="70" style="border-radius:8px" alt="raphaelbat" /></a>
-
-**[@jotadev66](https://github.com/jotadev66) · [@jobasfernandes](https://github.com/jobasfernandes) · [@edgardmessias](https://github.com/edgardmessias) · [@w3nder](https://github.com/w3nder) · [@raphaelbat](https://github.com/raphaelbat)**
-
-</div>
-
----
-
-## 🏆 Créditos
-
-<div align="center">
-
-Feito com muito 💚 e código aberto por:
-
-</div>
-
-- 👨‍💻 [**JotaDev66**](https://github.com/jotadev66) — mantenedor da lib base (WaCalls core)
-- 👨‍💻 [**jobasfernandes**](https://github.com/jobasfernandes) — contribuidor
-- 🚀 [**Raphaelbat**](https://github.com/raphaelbat) — desenvolvimento dos demais recursos do sistema (painel, chats, conexões, usuários, instalador e integrações)
-
-<div align="center">
-
-### 🎬 Um agradecimento especial ao canal:
-
-[![YouTube](https://img.shields.io/badge/YOUTUBE-@vemfazer-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@vemfazer)
-
-### 📺 Canal [Vem Fazer](https://youtube.com/@vemfazer)
-
-🔥 **Se esse projeto te ajudou, dê uma força ao canal!** 🔥
-
-[![Inscreva-se](https://img.shields.io/badge/%F0%9F%91%89_INSCREVA--SE_NO_CANAL-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@vemfazer?sub_confirmation=1)
-
-*Curta, comente e compartilhe os vídeos — é isso que mantém o projeto vivo e gratuito!*
-
-<br/>
-
-<img src="https://user-images.githubusercontent.com/74038190/212284158-e840e285-664b-44d7-b79b-e264b5e54825.gif" width="400" alt="thanks" />
-
-<br/>
-
-**Feito com 💚 pela comunidade open source.**
-
-</div>
-
----
-
-<div align="center">
 
 ## 📜 Licença
 
-**MIT** — código aberto, uso comercial permitido. Contribuições via PR são bem-vindas. 🚀
-
-</div>
-
-
-
+Distribuído sob a licença **MIT**. Uso livre para fins comerciais e pessoais.
