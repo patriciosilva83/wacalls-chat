@@ -21,6 +21,7 @@ type Props = {
 
 export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Props) => {
   const [activeTab, setActiveTab] = useState<"general" | "chatwoot" | "webhook">("general");
+  const [name, setName] = useState(session.name ?? "");
   const [allowGroups, setAllowGroups] = useState(!!session.allowGroups);
   const [queueId, setQueueId] = useState(session.queueId ?? "");
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -42,6 +43,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
 
   useEffect(() => {
     if (!open) return;
+    setName(session.name ?? "");
     setAllowGroups(!!session.allowGroups);
     setQueueId(session.queueId ?? "");
     setFlowId(session.flowId ?? "");
@@ -71,7 +73,7 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
     setBusy(true);
     try {
       await updateSession(session.id, {
-        name: session.name,
+        name,
         color: session.color ?? "#57adf8",
         isDefault: !!session.isDefault,
         allowGroups,
@@ -161,6 +163,16 @@ export const EditConnectionModal = ({ open, onOpenChange, session, onSaved }: Pr
         <div className="max-h-[350px] overflow-y-auto px-6 py-5 space-y-5">
           {activeTab === "general" && (
             <>
+              <div className="space-y-1.5">
+                <Label htmlFor="cname">Nome da conexão</Label>
+                <Input
+                  id="cname"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Pessoal, Suporte, etc."
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="cqueue">Fila vinculada</Label>
                 <select
