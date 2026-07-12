@@ -174,6 +174,16 @@ Agradecemos e incentivamos contribuições! Se você gostou das customizações 
 
 ---
 
+### 💖 Apoie o Projeto
+
+Se você gostou deste projeto e das minhas features/alterações e gostaria de incentivar o desenvolvimento de novas melhorias, considere apoiar fazendo uma contribuição espontânea de qualquer valor via Pix:
+
+*   🔑 **Chave Pix (E-mail):** `ertprs.familia@gmail.com`
+
+Sua ajuda contribui para manter o projeto ativo, desenvolver novas features e trazer melhorias contínuas para todos!
+
+---
+
 ## 📜 Licença
 
 Distribuído sob a licença **MIT**. Uso livre para fins comerciais e pessoais.
