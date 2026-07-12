@@ -30,6 +30,7 @@ import { useSessions } from "@/stores/sessions";
 import { listQueues } from "@/services/queues";
 import type { Queue } from "@/types/queue";
 import { rememberMessage, suggestMessages } from "@/lib/message-suggestions";
+import { listQuickMessages, type QuickMessage } from "@/services/quickMessages";
 
 const EMPTY_MESSAGES: ChatMessage[] = [];
 
@@ -89,8 +90,37 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
   const [showFlows, setShowFlows] = useState(false);
   const [suggestIdx, setSuggestIdx] = useState(-1);
   const [showSuggest, setShowSuggest] = useState(true);
+  const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([]);
 
-  const suggestions = useMemo(() => (showSuggest ? suggestMessages(text) : []), [text, showSuggest]);
+  useEffect(() => {
+    let cancelled = false;
+    listQuickMessages()
+      .then((rows) => {
+        if (!cancelled) setQuickMessages(rows);
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const suggestions = useMemo(() => {
+    if (!showSuggest) return [];
+    if (text.startsWith("/")) {
+      const q = text.slice(1).toLowerCase();
+      return quickMessages
+        .filter((m) => m.shortcut.toLowerCase().includes(q))
+        .map((m) => ({
+          display: `/${m.shortcut} - ${m.message}`,
+          value: m.message,
+        }));
+    }
+    return suggestMessages(text).map((item) => ({
+      display: item,
+      value: item,
+    }));
+  }, [text, showSuggest, quickMessages]);
+
   useEffect(() => { setSuggestIdx(-1); }, [text]);
   useEffect(() => { setShowSuggest(true); }, [chatJid]);
   const [flows, setFlows] = useState<FlowRow[]>([]);
@@ -992,7 +1022,7 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
                     if (e.key === "Tab" || (e.key === "Enter" && suggestIdx >= 0)) {
                       e.preventDefault();
                       const pick = suggestions[suggestIdx >= 0 ? suggestIdx : 0];
-                      if (pick) { setText(pick); setShowSuggest(false); }
+                      if (pick) { setText(pick.value); setShowSuggest(false); }
                       return;
                     }
                     if (e.key === "Escape") {
@@ -1014,13 +1044,13 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
                   </div>
                   {suggestions.map((s, i) => (
                     <button
-                      key={s + i}
+                      key={s.value + i}
                       type="button"
-                      onMouseDown={(ev) => { ev.preventDefault(); setText(s); setShowSuggest(false); }}
+                      onMouseDown={(ev) => { ev.preventDefault(); setText(s.value); setShowSuggest(false); }}
                       onMouseEnter={() => setSuggestIdx(i)}
                       className={`block w-full truncate px-3 py-2 text-left text-sm ${i === suggestIdx ? "bg-accent" : "hover:bg-accent/60"}`}
                     >
-                      {s}
+                      {s.display}
                     </button>
                   ))}
                 </div>
