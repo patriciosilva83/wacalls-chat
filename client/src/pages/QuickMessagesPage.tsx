@@ -29,6 +29,7 @@ export default function QuickMessagesPage() {
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<QuickMessage | null>(null);
   const [modalData, setModalData] = useState({
     shortcut: "",
     message: "",
@@ -148,19 +149,25 @@ export default function QuickMessagesPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary-foreground" onClick={() => handleEdit(m)}>
-                    <Pencil className="h-4 w-4 mr-1" /> Editar
-                  </Button>
-                  <ConfirmDialog
-                    title="Remover atalho?"
-                    description="Esta ação não pode ser desfeita."
-                    onConfirm={() => handleDelete(m.id)}
+                <div className="flex items-center justify-end gap-1 pt-4 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEdit(m)}
+                    title="Editar"
                   >
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                      <Trash2 className="h-4 w-4" /> Remover
-                    </Button>
-                  </ConfirmDialog>
+                    <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                    onClick={() => setToDelete(m)}
+                    title="Remover"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -202,6 +209,21 @@ export default function QuickMessagesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title="Remover atalho?"
+        description="Esta ação não pode ser desfeita."
+        destructive
+        confirmLabel="Remover"
+        onConfirm={() => {
+          if (toDelete) {
+            void handleDelete(toDelete.id);
+            setToDelete(null);
+          }
+        }}
+      />
     </AppShell>
   );
 }
