@@ -106,6 +106,10 @@ func (d *campaignDialer) dialContact(c Campaign, contact CampaignContact) {
 		return
 	}
 
+	if c.FlowID != "" {
+		sess.reg.setFlowOverride(callID, c.FlowID)
+	}
+
 	// Record the call in broker for tracking
 	d.srv.broker.upsertCall(CallRecord{
 		SessionID: c.SessionID,

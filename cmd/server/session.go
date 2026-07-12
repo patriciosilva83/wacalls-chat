@@ -305,11 +305,9 @@ func (s *Session) handleEvent(rawEvt any) {
 			s.log.Info("call accept event", "call_id", callID, "from", evt.From.String())
 			ac.cm.HandleCallAccept(ctx, wrapCall(evt.From, evt.Data), evt.From)
 			if s.mgr.flowExec != nil {
-				flowID := s.reg.flowOverride(callID)
-				if flowID == "" {
-					flowID = s.flowID
+				if flowID := s.reg.flowOverride(callID); flowID != "" {
+					s.mgr.flowExec.StartForCall(ctx, s.id, callID, evt.From.String(), s.ownerID, flowID)
 				}
-				s.mgr.flowExec.StartForCall(ctx, s.id, callID, evt.From.String(), s.ownerID, flowID)
 			}
 		}
 	case *events.CallPreAccept:
