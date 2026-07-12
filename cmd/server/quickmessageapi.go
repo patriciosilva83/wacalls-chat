@@ -12,6 +12,7 @@ func (s *server) registerQuickMessageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/quick-messages", s.requireAuth(s.handleListQuickMessages))
 	mux.HandleFunc("POST /api/quick-messages", s.requireAuth(s.handleCreateQuickMessage))
 	mux.HandleFunc("DELETE /api/quick-messages/{id}", s.requireAuth(s.handleDeleteQuickMessage))
+	mux.HandleFunc("PUT /api/quick-messages/{id}", s.requireAuth(s.handleUpdateQuickMessage))
 }
 
 func (s *server) handleListQuickMessages(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +71,30 @@ func (s *server) handleDeleteQuickMessage(w http.ResponseWriter, r *http.Request
 	id := r.PathValue("id")
 
 	if err := s.quickMessages.Delete(r.Context(), id, tenant); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (s *server) handleUpdateQuickMessage(w http.ResponseWriter, r *http.Request) {
+	u := currentUserFromReq(r)
+	tenant := u.TenantID()
+	if tenant == "" {
+		tenant = u.ID
+	}
+	id := r.PathValue("id")
+
+	var body struct {
+		Shortcut string `json:"shortcut"`
+		Message  string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		return
+	}
+
+	if err := s.quickMessages.Update(r.Context(), id, tenant, body.Shortcut, body.Message); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}

@@ -65,3 +65,9 @@ func (s *announcementStore) Delete(ctx context.Context, id, tenantID string) err
 	_, err := s.db.ExecContext(ctx, q, id, tenantID)
 	return err
 }
+
+func (s *announcementStore) Update(ctx context.Context, id, tenantID, title, message string) error {
+	q := `UPDATE announcements SET title = ?, message = ? WHERE id = ? AND tenant_id = ?`
+	_, err := s.db.ExecContext(ctx, q, title, message, id, tenantID)
+	return err
+}

@@ -65,3 +65,9 @@ func (s *quickMessageStore) Delete(ctx context.Context, id, tenantID string) err
 	_, err := s.db.ExecContext(ctx, q, id, tenantID)
 	return err
 }
+
+func (s *quickMessageStore) Update(ctx context.Context, id, tenantID, shortcut, message string) error {
+	q := `UPDATE quick_messages SET shortcut = ?, message = ? WHERE id = ? AND tenant_id = ?`
+	_, err := s.db.ExecContext(ctx, q, shortcut, message, id, tenantID)
+	return err
+}

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from "@/lib/api";
+import { apiGet, apiPost, apiDelete, apiPut } from "@/lib/api";
 
 export type Announcement = {
   id: string;
@@ -22,4 +22,11 @@ export async function createAnnouncement(data: {
 
 export async function deleteAnnouncement(id: string): Promise<void> {
   return apiDelete(`/api/announcements/${id}`);
+}
+
+export async function updateAnnouncement(
+  id: string,
+  data: { title: string; message: string }
+): Promise<void> {
+  return apiPut(`/api/announcements/${id}`, data);
 }
