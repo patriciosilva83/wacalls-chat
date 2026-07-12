@@ -424,14 +424,14 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
     setRecording(false);
   };
 
-  const teardownAudioVis = () => {
+  function teardownAudioVis() {
     if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     if (recordTimerRef.current != null) { window.clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
     if (audioCtxRef.current) { try { void audioCtxRef.current.close(); } catch { /* ignore */ } audioCtxRef.current = null; }
     analyserRef.current = null;
-  };
+  }
 
-  const drawWaveform = () => {
+  function drawWaveform() {
     const analyser = analyserRef.current;
     const canvas = waveCanvasRef.current;
     if (!analyser || !canvas) {
@@ -458,7 +458,7 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
       ctx.fillRect(i * (bw + 2), (h - bh) / 2, bw, bh);
     }
     rafRef.current = requestAnimationFrame(drawWaveform);
-  };
+  }
 
   const toggleSignature = () => persistSignature({ ...signature, enabled: !signature.enabled });
 
