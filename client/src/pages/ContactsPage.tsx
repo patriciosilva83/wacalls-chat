@@ -23,7 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { setActiveChat } from "@/stores/chats";
+import { fetchChats, setActiveChat } from "@/stores/chats";
+import { assignChatTo } from "@/services/chats";
+import { useAuth } from "@/stores/auth";
 import {
   Dialog,
   DialogContent,
@@ -55,8 +57,21 @@ export default function ContactsPage() {
   const openDialer = useDialerUI((s) => s.openDialer);
   const navigate = useNavigate();
 
-  const handleStartChat = (c: ContactRow) => {
+  const handleStartChat = async (c: ContactRow) => {
+    const user = useAuth.getState().user;
+    const session = sessions.find((x) => x.id === c.sessionId);
+    const defaultQueueId = session?.queueId ?? "";
+
+    try {
+      await assignChatTo(c.sessionId, c.chatJid, {
+        userId: user?.id ?? "",
+        queueId: defaultQueueId,
+      });
+    } catch (err: any) {
+      console.warn("Falha ao atribuir atendimento", err);
+    }
     setActiveChat(c.sessionId, c.chatJid);
+    await fetchChats(c.sessionId).catch(() => {});
     navigate("/chats");
   };
 
