@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from "@/lib/api";
+import { apiGet, apiPost, apiDelete, apiPut } from "@/lib/api";
 
 export type QuickMessage = {
   id: string;
@@ -22,4 +22,11 @@ export async function createQuickMessage(data: {
 
 export async function deleteQuickMessage(id: string): Promise<void> {
   return apiDelete(`/api/quick-messages/${id}`);
+}
+
+export async function updateQuickMessage(
+  id: string,
+  data: { shortcut: string; message: string }
+): Promise<void> {
+  return apiPut(`/api/quick-messages/${id}`, data);
 }

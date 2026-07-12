@@ -12,6 +12,7 @@ func (s *server) registerAnnouncementRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/announcements", s.requireAuth(s.handleListAnnouncements))
 	mux.HandleFunc("POST /api/announcements", s.requireAdmin(s.handleCreateAnnouncement)) // only admins
 	mux.HandleFunc("DELETE /api/announcements/{id}", s.requireAdmin(s.handleDeleteAnnouncement))
+	mux.HandleFunc("PUT /api/announcements/{id}", s.requireAdmin(s.handleUpdateAnnouncement))
 }
 
 func (s *server) handleListAnnouncements(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +75,30 @@ func (s *server) handleDeleteAnnouncement(w http.ResponseWriter, r *http.Request
 	id := r.PathValue("id")
 
 	if err := s.announcements.Delete(r.Context(), id, tenant); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (s *server) handleUpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
+	u := currentUserFromReq(r)
+	tenant := u.TenantID()
+	if tenant == "" {
+		tenant = u.ID
+	}
+	id := r.PathValue("id")
+
+	var body struct {
+		Title   string `json:"title"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+		return
+	}
+
+	if err := s.announcements.Update(r.Context(), id, tenant, body.Title, body.Message); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Zap } from "lucide-react";
+import { Loader2, Plus, Trash2, Zap, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   listQuickMessages,
   createQuickMessage,
   deleteQuickMessage,
+  updateQuickMessage,
 } from "@/services/quickMessages";
 import type { QuickMessage } from "@/services/quickMessages";
 
@@ -27,6 +28,7 @@ export default function QuickMessagesPage() {
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalData, setModalData] = useState({
     shortcut: "",
     message: "",
@@ -47,6 +49,18 @@ export default function QuickMessagesPage() {
     loadData();
   }, []);
 
+  const handleOpenNew = () => {
+    setEditingId(null);
+    setModalData({ shortcut: "", message: "" });
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (m: QuickMessage) => {
+    setEditingId(m.id);
+    setModalData({ shortcut: m.shortcut, message: m.message });
+    setIsModalOpen(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalData.shortcut || !modalData.message) {
@@ -61,16 +75,25 @@ export default function QuickMessagesPage() {
     }
 
     try {
-      await createQuickMessage({
-        shortcut,
-        message: modalData.message,
-      });
-      toast.success("Resposta criada com sucesso!");
+      if (editingId) {
+        await updateQuickMessage(editingId, {
+          shortcut,
+          message: modalData.message,
+        });
+        toast.success("Resposta atualizada com sucesso!");
+      } else {
+        await createQuickMessage({
+          shortcut,
+          message: modalData.message,
+        });
+        toast.success("Resposta criada com sucesso!");
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setModalData({ shortcut: "", message: "" });
       loadData();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar resposta rápida");
+      toast.error(err.message || "Erro ao salvar resposta rápida");
     }
   };
 
@@ -88,7 +111,7 @@ export default function QuickMessagesPage() {
     <AppShell>
       <div className="flex items-center justify-between pb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Respostas Rápidas</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={handleOpenNew}>
           <Plus className="mr-2 h-4 w-4" /> Nova Resposta
         </Button>
       </div>
@@ -126,6 +149,9 @@ export default function QuickMessagesPage() {
                 </div>
 
                 <div className="flex items-center justify-end space-x-2 pt-4 border-t">
+                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary-foreground" onClick={() => handleEdit(m)}>
+                    <Pencil className="h-4 w-4 mr-1" /> Editar
+                  </Button>
                   <ConfirmDialog
                     title="Remover atalho?"
                     description="Esta ação não pode ser desfeita."
@@ -145,7 +171,7 @@ export default function QuickMessagesPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Resposta Rápida</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Resposta Rápida" : "Nova Resposta Rápida"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 py-2">
             <div className="space-y-2">

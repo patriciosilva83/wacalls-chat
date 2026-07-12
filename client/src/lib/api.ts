@@ -89,3 +89,14 @@ export const apiPatch = async <T>(path: string, body: unknown): Promise<T> => {
   if (!r.ok) throw await parseError(path, r);
   return r.json() as Promise<T>;
 };
+
+export const apiPut = async <T>(path: string, body: unknown): Promise<T> => {
+  const r = await fetch(apiUrl(path), {
+    method: "PUT",
+    headers: baseHeaders(),
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw await parseError(path, r);
+  return r.json() as Promise<T>;
+};

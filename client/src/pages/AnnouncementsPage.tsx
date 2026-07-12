@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Megaphone } from "lucide-react";
+import { Loader2, Plus, Trash2, Megaphone, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   listAnnouncements,
   createAnnouncement,
   deleteAnnouncement,
+  updateAnnouncement,
 } from "@/services/announcements";
 import type { Announcement } from "@/services/announcements";
 import { useAuth } from "@/stores/auth";
@@ -29,6 +30,7 @@ export default function AnnouncementsPage() {
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalData, setModalData] = useState({
     title: "",
     message: "",
@@ -49,6 +51,18 @@ export default function AnnouncementsPage() {
     loadData();
   }, []);
 
+  const handleOpenNew = () => {
+    setEditingId(null);
+    setModalData({ title: "", message: "" });
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (a: Announcement) => {
+    setEditingId(a.id);
+    setModalData({ title: a.title, message: a.message });
+    setIsModalOpen(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalData.title || !modalData.message) {
@@ -57,16 +71,25 @@ export default function AnnouncementsPage() {
     }
 
     try {
-      await createAnnouncement({
-        title: modalData.title,
-        message: modalData.message,
-      });
-      toast.success("Aviso criado com sucesso!");
+      if (editingId) {
+        await updateAnnouncement(editingId, {
+          title: modalData.title,
+          message: modalData.message,
+        });
+        toast.success("Aviso atualizado com sucesso!");
+      } else {
+        await createAnnouncement({
+          title: modalData.title,
+          message: modalData.message,
+        });
+        toast.success("Aviso criado com sucesso!");
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setModalData({ title: "", message: "" });
       loadData();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar aviso");
+      toast.error(err.message || "Erro ao salvar aviso");
     }
   };
 
@@ -85,7 +108,7 @@ export default function AnnouncementsPage() {
       <div className="flex items-center justify-between pb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Mural de Avisos</h1>
         {isAdmin && (
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button onClick={handleOpenNew}>
             <Plus className="mr-2 h-4 w-4" /> Novo Aviso
           </Button>
         )}
@@ -129,6 +152,9 @@ export default function AnnouncementsPage() {
 
                 {isAdmin && (
                   <div className="flex items-center justify-end space-x-2 pt-4 border-t">
+                    <Button variant="ghost" size="sm" className="text-primary hover:text-primary-foreground" onClick={() => handleEdit(a)}>
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
                     <ConfirmDialog
                       title="Remover aviso?"
                       description="Esta ação não pode ser desfeita."
@@ -149,7 +175,7 @@ export default function AnnouncementsPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Novo Aviso Geral</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Aviso" : "Novo Aviso Geral"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 py-2">
             <div className="space-y-2">

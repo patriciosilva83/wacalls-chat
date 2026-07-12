@@ -12,15 +12,18 @@ import {
   Upload,
   X,
   Copy,
+  MessageSquare,
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { setActiveChat } from "@/stores/chats";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +53,12 @@ type KindFilter = "" | "user" | "group";
 export default function ContactsPage() {
   const sessions = useSessions((s) => s.sessions);
   const openDialer = useDialerUI((s) => s.openDialer);
+  const navigate = useNavigate();
+
+  const handleStartChat = (c: ContactRow) => {
+    setActiveChat(c.sessionId, c.chatJid);
+    navigate("/chats");
+  };
 
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +277,15 @@ export default function ContactsPage() {
                       </td>
                       <td className="px-4 py-2 text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label="Conversar"
+                            onClick={() => handleStartChat(c)}
+                            title="Iniciar Conversa"
+                          >
+                            <MessageSquare className="h-4 w-4 text-primary" />
+                          </Button>
                           {!c.isGroup && c.phone && (
                             <Button
                               size="sm"
