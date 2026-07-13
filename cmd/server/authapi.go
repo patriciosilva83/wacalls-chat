@@ -67,8 +67,8 @@ func clientIP(r *http.Request) string {
 }
 
 func (s *server) registerAuthRoutes(mux *http.ServeMux) {
-	// Signup público desabilitado: cadastro de usuários é feito apenas pelo admin em /api/users.
-	// mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
+	// Signup público reabilitado para cadastro de novos usuários
+	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	mux.HandleFunc("GET /api/auth/me", s.handleMe)

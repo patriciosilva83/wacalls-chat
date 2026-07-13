@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode, type ComponentType } from "react";
-import { BarChart3, ChevronDown, ChevronsLeft, ChevronsRight, Contact2, History, KanbanSquare, Layers, Maximize2, Megaphone, Menu as MenuIcon, MessageSquare, Minimize2, PhoneCall, Radio, Settings, ShoppingCart, Tag, Users2, Wifi, Workflow } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronsLeft, ChevronsRight, Contact2, History, KanbanSquare, Layers, Maximize2, Megaphone, Menu as MenuIcon, MessageSquare, Minimize2, PhoneCall, Radio, Settings, ShoppingCart, Tag, Users2, Wifi, Workflow, Bot, CalendarClock, Zap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { UserMenu } from "./UserMenu";
@@ -124,17 +124,28 @@ const AppShellInner = ({ children }: { children: ReactNode }) => {
   const campaignChildren: (NavItem & { feat?: string })[] = [];
   const principal: (NavItem & { perm: Permission; feat?: string })[] = [
     { to: "/chats", icon: MessageSquare, label: t("nav.chats", { defaultValue: "Chat" }), badge: unreadTotal, perm: "chats" },
+    { to: "/kanban", icon: KanbanSquare, label: t("nav.kanban", { defaultValue: "Kanban" }), perm: "chats", feat: "kanban" },
     { to: "/contacts", icon: Contact2, label: t("nav.contacts", { defaultValue: "Contatos" }), perm: "chats" },
     { to: "/queues", icon: Users2, label: t("nav.queues", { defaultValue: "Filas" }), perm: "chats" },
+    { to: "/tags", icon: Tag, label: t("nav.tags", { defaultValue: "Tags" }), perm: "chats" },
+    { to: "/flows", icon: Bot, label: t("nav.flows", { defaultValue: "FlowBuilder" }), perm: "chats", feat: "flows" },
+    { to: "/campaigns", icon: PhoneCall, label: t("nav.campaigns", { defaultValue: "Campanhas" }), perm: "chats", feat: "campaigns" },
+    { to: "/quick-messages", icon: Zap, label: t("nav.quickMessages", { defaultValue: "Respostas Rápidas" }), perm: "chats", feat: "quick-messages" },
+    { to: "/announcements", icon: Megaphone, label: t("nav.announcements", { defaultValue: "Mural de Avisos" }), perm: "chats", feat: "announcements" },
+    { to: "/scheduled-messages", icon: CalendarClock, label: t("nav.scheduled", { defaultValue: "Agendamentos" }), perm: "chats", feat: "scheduled-messages" },
     { to: "/connections", icon: Wifi, label: t("nav.connections", { defaultValue: "Conexões" }), perm: "connections" },
-    { to: "/reports", icon: BarChart3, label: t("nav.reports", { defaultValue: "Relatórios" }), perm: "chats" },
+    { to: "/reports", icon: BarChart3, label: t("nav.reports", { defaultValue: "Relatórios" }), perm: "chats", feat: "reports" },
   ];
-  const aplicacoes: (NavItem & { perm: Permission; feat?: string })[] = [];
+  const aplicacoes: (NavItem & { perm: Permission; feat?: string })[] = [
+    { to: "/billing", icon: ShoppingCart, label: t("nav.billing", { defaultValue: "Financeiro" }), perm: "chats", feat: "billing" },
+    { to: "/agents", icon: Bot, label: t("nav.agents", { defaultValue: "Agentes IA" }), perm: "chats", feat: "agents" },
+  ];
   if (isAdmin) {
     aplicacoes.push({ to: "/admin/users", icon: Contact2, label: t("nav.users", { defaultValue: "Usuários" }), perm: "chats" });
+    aplicacoes.push({ to: "/admin/companies", icon: Settings, label: t("nav.adminSaas", { defaultValue: "Configurações" }), perm: "chats" });
   }
   const filterAllowed = (arr: (NavItem & { perm: Permission; feat?: string })[]): NavItem[] =>
-    arr.filter((it) => hasPermission(user, it.perm));
+    arr.filter((it) => hasPermission(user, it.perm) && (!it.feat || hasFeature(it.feat)));
   const principalItems = filterAllowed(principal);
   const aplicacoesItems = filterAllowed(aplicacoes);
   const settingsItem: NavItem = { to: "/chats", icon: MessageSquare, label: t("nav.chats", { defaultValue: "Chat" }) };

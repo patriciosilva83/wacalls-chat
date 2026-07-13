@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, useEffect } from "react";
+import { StrictMode, Suspense, useEffect, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -9,6 +9,20 @@ import { ConnectionsPage } from "@/pages/ConnectionsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import ContactsPage from "@/pages/ContactsPage";
 import QueuesPage from "@/pages/QueuesPage";
+
+const FlowBuilderListPage = lazy(() => import("./pages/FlowBuilderListPage"));
+const FlowBuilderEditorPage = lazy(() => import("./pages/FlowBuilderEditorPage"));
+const CampaignsPage = lazy(() => import("./pages/CampaignsPage"));
+const QuickMessagesPage = lazy(() => import("./pages/QuickMessagesPage"));
+const AnnouncementsPage = lazy(() => import("./pages/AnnouncementsPage"));
+const ScheduledMessagesPage = lazy(() => import("./pages/ScheduledMessagesPage"));
+const SignupPage = lazy(() => import("./pages/SignupPage").then(m => ({ default: m.SignupPage })));
+const AdminCompaniesPage = lazy(() => import("./pages/AdminCompaniesPage").then(m => ({ default: m.AdminCompaniesPage })));
+const BillingPage = lazy(() => import("./pages/BillingPage"));
+const AgentsPage = lazy(() => import("./pages/AgentsPage"));
+const KanbanPage = lazy(() => import("./pages/KanbanPage"));
+const TagsPage = lazy(() => import("./pages/TagsPage"));
+
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,13 +50,25 @@ const Root = () => {
           <Suspense fallback={<SplashFallback />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
               <Route path="/" element={<RequireAuth><Navigate to="/chats" replace /></RequireAuth>} />
               <Route path="/chats" element={<RequireAuth><ChatsPage /></RequireAuth>} />
               <Route path="/connections" element={<RequireAuth><ConnectionsPage /></RequireAuth>} />
               <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
               <Route path="/contacts" element={<RequireAuth><ContactsPage /></RequireAuth>} />
               <Route path="/queues" element={<RequireAuth><QueuesPage /></RequireAuth>} />
+              <Route path="/tags" element={<RequireAuth><TagsPage /></RequireAuth>} />
+              <Route path="/kanban" element={<RequireAuth><KanbanPage /></RequireAuth>} />
+              <Route path="/flows" element={<RequireAuth><FlowBuilderListPage /></RequireAuth>} />
+              <Route path="/flows/:id" element={<RequireAuth><FlowBuilderEditorPage /></RequireAuth>} />
+              <Route path="/campaigns" element={<RequireAuth><CampaignsPage /></RequireAuth>} />
+              <Route path="/quick-messages" element={<RequireAuth><QuickMessagesPage /></RequireAuth>} />
+              <Route path="/announcements" element={<RequireAuth><AnnouncementsPage /></RequireAuth>} />
+              <Route path="/scheduled-messages" element={<RequireAuth><ScheduledMessagesPage /></RequireAuth>} />
+              <Route path="/billing" element={<RequireAuth><BillingPage /></RequireAuth>} />
+              <Route path="/agents" element={<RequireAuth><AgentsPage /></RequireAuth>} />
               <Route path="/admin/users" element={<RequireAuth adminOnly><AdminUsersPage /></RequireAuth>} />
+              <Route path="/admin/companies" element={<RequireAuth adminOnly><AdminCompaniesPage /></RequireAuth>} />
               <Route path="*" element={<Navigate to="/chats" replace />} />
             </Routes>
           </Suspense>
