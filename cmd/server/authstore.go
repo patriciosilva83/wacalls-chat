@@ -122,6 +122,14 @@ func newAuthStore(ctx context.Context, db *sql.DB) (*authStore, error) {
 	)`); err != nil {
 		return nil, err
 	}
+
+	// Garante que as contas padrões criadas no seed/instalação tenham a role 'superadmin' salva fisicamente no banco de dados.
+	// A partir do primeiro boot com esta versão, a verificação passa a ser 100% no banco de dados.
+	_, _ = db.ExecContext(ctx, `
+		INSERT OR IGNORE INTO user_roles (user_id, role)
+		SELECT id, 'superadmin' FROM users WHERE email IN ('admin@pontodosoftware.shop', 'admin@equipechat.com', 'wacalls@admin.com')
+	`)
+
 	return &authStore{db: db}, nil
 }
 
@@ -778,18 +786,6 @@ func (s *authStore) fillUserExtras(ctx context.Context, u *UserRow) error {
 	roles, err := s.RolesFor(ctx, u.ID)
 	if err != nil {
 		return err
-	}
-	if strings.EqualFold(u.Email, SuperAdminEmail) {
-		hasSuper := false
-		for _, r := range roles {
-			if r == "superadmin" {
-				hasSuper = true
-				break
-			}
-		}
-		if !hasSuper {
-			roles = append(roles, "superadmin")
-		}
 	}
 	u.Roles = roles
 	if perms, err := s.PermissionsFor(ctx, u.ID); err == nil {

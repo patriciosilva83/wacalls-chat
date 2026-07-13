@@ -1317,6 +1317,8 @@ VALUES ('${id}', '${admin_user}', '${hash}', ${now}, 'Ponto do Software', '', 1,
 ON CONFLICT(email) DO UPDATE SET password_hash='${hash}', active=1;
 INSERT OR IGNORE INTO user_roles (user_id, role)
 SELECT id, 'admin' FROM users WHERE email='${admin_user}';
+INSERT OR IGNORE INTO user_roles (user_id, role)
+SELECT id, 'superadmin' FROM users WHERE email='${admin_user}';
 SQL
   systemctl start "${APP_NAME}" 2>/dev/null || true
 
