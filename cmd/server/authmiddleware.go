@@ -30,10 +30,6 @@ type currentUser struct {
 	PlanFeatures string
 }
 
-const (
-	RoleAdmin = "admin"
-)
-
 func (u *currentUser) HasRole(r string) bool {
 	if u == nil {
 		return false
