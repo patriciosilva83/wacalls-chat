@@ -32,7 +32,7 @@ type FormState = {
   password: string;
   companyName: string;
   cpf: string;
-  role: "admin" | "user";
+  role: "admin" | "user" | "superadmin";
   queueIds: string[];
   sessionIds: string[];
   permissions: Permission[];
@@ -44,7 +44,7 @@ const emptyForm: FormState = {
   password: "",
   companyName: "",
   cpf: "",
-  role: "admin",
+  role: "user",
   queueIds: [],
   sessionIds: [],
   permissions: [...DEFAULT_PERMISSIONS],
@@ -122,7 +122,7 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
       password: "",
       companyName: u.companyName ?? "",
       cpf: u.cpf ?? "",
-      role: u.roles.includes("admin") ? "admin" : "user",
+      role: u.roles.includes("superadmin") ? "superadmin" : u.roles.includes("admin") ? "admin" : "user",
       queueIds: [],
       sessionIds: [],
       permissions: [],
@@ -173,10 +173,13 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
         name: form.name.trim(),
         companyName: form.companyName.trim(),
         cpf: form.cpf.trim(),
-        role: form.role,
+        role: form.role === "superadmin" ? "admin" : form.role,
         queueIds: form.queueIds,
       });
-      if (form.role !== "admin") {
+      if (form.role === "superadmin") {
+        await authApi.setRole(created.id, "superadmin", true);
+      }
+      if (form.role === "user") {
         await authApi.setUserPermissions(created.id, form.permissions);
       }
       if (form.sessionIds.length) {
@@ -204,8 +207,23 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
         newPassword: form.password || undefined,
       });
       await authApi.setUserQueues(editing.id, form.queueIds);
-      await authApi.setUserPermissions(editing.id, form.permissions);
+      if (form.role === "user") {
+        await authApi.setUserPermissions(editing.id, form.permissions);
+      }
       await authApi.setUserSessions(editing.id, form.sessionIds);
+
+      const wasAdmin = editing.roles.includes("admin");
+      const wasSuper = editing.roles.includes("superadmin");
+      const isCurrentlyAdmin = form.role === "admin" || form.role === "superadmin";
+      const isCurrentlySuper = form.role === "superadmin";
+
+      if (wasSuper !== isCurrentlySuper) {
+        await authApi.setRole(editing.id, "superadmin", isCurrentlySuper);
+      }
+      if (wasAdmin !== isCurrentlyAdmin) {
+        await authApi.setRole(editing.id, "admin", isCurrentlyAdmin);
+      }
+
       toast.success("Usuário atualizado");
       setEditing(null);
       await reload();
@@ -348,7 +366,9 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-3 py-2 font-medium">Nome / Email</th>
-                  <th className="px-3 py-2 font-medium">{t("pages.users.colCompany")}</th>
+                  {me?.roles?.includes("superadmin") && (
+                    <th className="px-3 py-2 font-medium">{t("pages.users.colCompany")}</th>
+                  )}
                   <th className="px-3 py-2 font-medium text-right">{t("pages.users.colActions")}</th>
                 </tr>
 
@@ -370,7 +390,9 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{u.companyName || "—"}</td>
+                      {me?.roles?.includes("superadmin") && (
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{u.companyName || "—"}</td>
+                      )}
 
                       <td className="px-3 py-2">
                         <div className="flex justify-end gap-1">
@@ -446,24 +468,28 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
               </div>
-              <div>
-                <Label htmlFor="u-company">Empresa</Label>
-                <Input
-                  id="u-company"
-                  value={form.companyName}
-                  onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="u-cpf">CPF/CNPJ</Label>
-                <Input
-                  id="u-cpf"
-                  value={form.cpf}
-                  placeholder="CPF ou CNPJ Alfanumérico"
-                  maxLength={18}
-                  onChange={(e) => setForm({ ...form, cpf: e.target.value })}
-                />
-              </div>
+              {me?.roles?.includes("superadmin") && (
+                <>
+                  <div>
+                    <Label htmlFor="u-company">Empresa</Label>
+                    <Input
+                      id="u-company"
+                      value={form.companyName}
+                      onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="u-cpf">CPF/CNPJ</Label>
+                    <Input
+                      id="u-cpf"
+                      value={form.cpf}
+                      placeholder="CPF ou CNPJ Alfanumérico"
+                      maxLength={18}
+                      onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div>
               <Label>Filas vinculadas</Label>
@@ -523,9 +549,9 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
               )}
             </div>
             <div>
-              <div className="flex items-center justify-between">
-                <Label>Perfil de acesso</Label>
-                {form.role !== "admin" && (
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="u-role">Perfil de acesso</Label>
+                {form.role !== "admin" && form.role !== "superadmin" && (
                   <div className="flex gap-2 text-[11px]">
                     <button
                       type="button"
@@ -545,9 +571,28 @@ export const AdminUsersPage = ({ embedded = false }: { embedded?: boolean } = {}
                   </div>
                 )}
               </div>
-              {form.role === "admin" ? (
+
+              <select
+                id="u-role"
+                value={form.role}
+                onChange={(e) => {
+                  const nextRole = e.target.value as "admin" | "user" | "superadmin";
+                  setForm({ ...form, role: nextRole });
+                }}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mb-3"
+              >
+                <option value="user">Atendente / Operador</option>
+                <option value="admin">Administrador da Empresa</option>
+                {me?.roles?.includes("superadmin") && (
+                  <option value="superadmin">Super Administrador (SaaS)</option>
+                )}
+              </select>
+
+              {form.role === "admin" || form.role === "superadmin" ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Administradores têm acesso total — todas as permissões são concedidas automaticamente.
+                  {form.role === "superadmin"
+                    ? "Super Administradores têm controle total sobre o SaaS, empresas, limites e configurações."
+                    : "Administradores têm acesso total dentro da empresa — todas as permissões são concedidas automaticamente."}
                 </p>
               ) : (
                 <div className="mt-1 grid grid-cols-1 gap-1.5 rounded-md border p-2 sm:grid-cols-2">

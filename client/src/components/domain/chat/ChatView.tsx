@@ -96,7 +96,7 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
     let cancelled = false;
     listQuickMessages()
       .then((rows) => {
-        if (!cancelled) setQuickMessages(rows);
+        if (!cancelled) setQuickMessages(rows || []);
       })
       .catch(console.error);
     return () => {
@@ -108,10 +108,11 @@ export const ChatView = ({ sessionId, chatJid, onStatusChange }: Props) => {
     if (!showSuggest) return [];
     if (text.startsWith("/")) {
       const q = text.slice(1).toLowerCase();
-      return quickMessages
-        .filter((m) => m.shortcut.toLowerCase().includes(q))
+      const list = quickMessages || [];
+      return list
+        .filter((m) => m && m.shortcut && m.shortcut.toLowerCase().includes(q))
         .map((m) => ({
-          display: `/${m.shortcut} - ${m.message}`,
+          display: `/${m.shortcut.replace(/^\/+/, "")} - ${m.message}`,
           value: m.message,
         }));
     }
