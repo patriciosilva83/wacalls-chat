@@ -62,6 +62,8 @@ type Session struct {
 	webhookEnabled    bool
 	webhookURL        string
 	webhookSecret     string
+
+	presenceOnce sync.Once
 }
 
 func newSession(mgr *SessionManager, id, name string, client *whatsmeow.Client) *Session {
@@ -295,6 +297,8 @@ func (s *Session) handleEvent(rawEvt any) {
 		}
 		s.setAuth(AuthSnapshot{State: "open", Paired: true})
 		go s.refreshSelfAvatar()
+		s.markAvailable(ctx)
+		s.startPresenceKeepalive()
 	case *events.LoggedOut:
 		s.setAuth(AuthSnapshot{State: "logged_out", Paired: false})
 	case *events.CallOffer:
@@ -303,13 +307,15 @@ func (s *Session) handleEvent(rawEvt any) {
 		callID := callIDFromNode(wrapCall(evt.From, evt.Data))
 		if ac, ok := s.reg.get(callID); ok {
 			s.log.Info("call accept event", "call_id", callID, "from", evt.From.String())
+			if s.isSelfDevice(evt.From) {
+				s.log.Info("coex: ignorando accept vindo do device irmão para manter ring ativo no dock", "call_id", callID, "from", evt.From.String())
+				return
+			}
 			ac.cm.HandleCallAccept(ctx, wrapCall(evt.From, evt.Data), evt.From)
 			if s.mgr.flowExec != nil {
-				flowID := s.reg.flowOverride(callID)
-				if flowID == "" {
-					flowID = s.flowID
+				if flowID := s.reg.flowOverride(callID); flowID != "" {
+					s.mgr.flowExec.StartForCall(ctx, s.id, callID, evt.From.String(), s.ownerID, flowID)
 				}
-				s.mgr.flowExec.StartForCall(ctx, s.id, callID, evt.From.String(), s.ownerID, flowID)
 			}
 		}
 	case *events.CallPreAccept:
@@ -327,6 +333,10 @@ func (s *Session) handleEvent(rawEvt any) {
 		callID := callIDFromNode(wrapCall(evt.From, evt.Data))
 		if ac, ok := s.reg.get(callID); ok {
 			s.log.Info("call terminate event", "call_id", callID, "from", evt.From.String())
+			if s.isSelfDevice(evt.From) {
+				s.log.Info("coex: ignorando terminate vindo do device irmão", "call_id", callID, "from", evt.From.String())
+				return
+			}
 			ac.cm.HandleCallTerminate(wrapCall(evt.From, evt.Data))
 			if s.mgr.flowExec != nil {
 				s.mgr.flowExec.Abort(callID)
@@ -336,6 +346,10 @@ func (s *Session) handleEvent(rawEvt any) {
 	case *events.CallReject:
 		callID := callIDFromNode(wrapCall(evt.From, evt.Data))
 		if ac, ok := s.reg.get(callID); ok {
+			if s.isSelfDevice(evt.From) {
+				s.log.Info("coex: ignorando reject vindo do device irmão", "call_id", callID, "from", evt.From.String())
+				return
+			}
 			ac.cm.HandleCallTerminate(wrapCall(evt.From, evt.Data))
 			if s.mgr.flowExec != nil {
 				s.mgr.flowExec.Abort(callID)
@@ -480,6 +494,7 @@ func (s *Session) removeCall(callID string) {
 	if ac.bridge != nil {
 		ac.bridge.Close()
 	}
+	go s.markAvailable(context.Background())
 }
 
 func (s *Session) terminateCall(callID string, reason core.EndCallReason) {
@@ -877,4 +892,47 @@ func mapDirection(d core.CallDirection) string {
 		return "inbound"
 	}
 	return "outbound"
+}
+
+// isSelfDevice verifica se o JID pertence a um dispositivo da nossa própria conta (multi-device/coexistence).
+func (s *Session) isSelfDevice(jid types.JID) bool {
+	if s.client == nil || s.client.Store == nil || s.client.Store.ID == nil {
+		return false
+	}
+	return jid.User == s.client.Store.ID.User
+}
+
+// markAvailable anuncia presença "available" para manter o dispositivo "callable" nos servidores do WhatsApp.
+func (s *Session) markAvailable(ctx context.Context) {
+	if s.client == nil || s.client.Store == nil || s.client.Store.ID == nil {
+		return
+	}
+	if s.client.Store.PushName == "" {
+		name := s.name
+		if name == "" {
+			name = "WaCalls"
+		}
+		s.client.Store.PushName = name
+	}
+	if err := s.client.SendPresence(ctx, types.PresenceAvailable); err != nil {
+		s.log.Warn("presença available falhou", "err", err)
+		return
+	}
+	s.log.Info("🟢 presença disponível anunciada com sucesso (mantém o companheiro callable)")
+}
+
+// startPresenceKeepalive re-anuncia presença periodicamente para evitar expiração por inatividade.
+func (s *Session) startPresenceKeepalive() {
+	s.presenceOnce.Do(func() {
+		go func() {
+			t := time.NewTicker(4 * time.Minute)
+			defer t.Stop()
+			for range t.C {
+				if s.client == nil || !s.client.IsConnected() {
+					continue
+				}
+				s.markAvailable(context.Background())
+			}
+		}()
+	})
 }
