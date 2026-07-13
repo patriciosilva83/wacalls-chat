@@ -68,7 +68,7 @@ export const resetPassword = (token: string, newPassword: string) =>
 export const listUsers = () =>
   req<{ users: AuthUser[] }>("/api/users").then((r) => r.users ?? []);
 
-export const setRole = (id: string, role: "admin" | "user", grant: boolean) =>
+export const setRole = (id: string, role: string, grant: boolean) =>
   req<{ ok: string }>(`/api/users/${id}/roles`, {
     method: "POST",
     body: JSON.stringify({ role, grant }),

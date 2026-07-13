@@ -572,6 +572,10 @@ func (s *server) handleSetRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor := currentUserFromReq(r)
+	if role == "superadmin" && (actor == nil || !actor.IsSuperAdmin()) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only superadmins can manage superadmin role"})
+		return
+	}
 	if actor != nil && actor.ID == id && !body.Grant && role == "admin" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cannot remove your own admin role"})
 		return

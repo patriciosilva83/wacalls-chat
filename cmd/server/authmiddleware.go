@@ -56,7 +56,7 @@ func (u *currentUser) IsSuperAdmin() bool {
 	if u == nil {
 		return false
 	}
-	return strings.EqualFold(u.Email, SuperAdminEmail) && u.IsAdmin()
+	return (strings.EqualFold(u.Email, SuperAdminEmail) && u.IsAdmin()) || u.HasRole("superadmin")
 }
 
 // TenantID returns the identifier of the tenant the user belongs to. For
