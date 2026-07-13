@@ -33,7 +33,7 @@ export const LoginPage = () => {
     () => (readCachedWhitelabel() as settingsApi.Whitelabel | null) ?? null,
   );
 
-  const [email, setEmail] = useState("admin@pontodosoftware.shop");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);

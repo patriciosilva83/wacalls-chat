@@ -3,13 +3,21 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 )
 
 // SuperAdminEmail identifies the SaaS owner account that has access to
 // global Settings (plans, whitelabel, options, companies management).
 // Regular admin users from other companies do NOT have this access.
-const SuperAdminEmail = "admin@pontodosoftware.shop"
+var SuperAdminEmail = getSuperAdminEmail()
+
+func getSuperAdminEmail() string {
+	if email := strings.TrimSpace(os.Getenv("WACALLS_SUPER_ADMIN_EMAIL")); email != "" {
+		return email
+	}
+	return "admin@pontodosoftware.shop"
+}
 
 type ctxKey int
 
