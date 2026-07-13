@@ -774,8 +774,6 @@ func (s *authStore) SetUserSessions(ctx context.Context, userID string, sessionI
 	return tx.Commit()
 }
 
-const SuperAdminEmail = "admin@pontodosoftware.shop"
-
 func (s *authStore) fillUserExtras(ctx context.Context, u *UserRow) error {
 	roles, err := s.RolesFor(ctx, u.ID)
 	if err != nil {

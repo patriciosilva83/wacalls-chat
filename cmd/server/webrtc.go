@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -77,4 +79,21 @@ func publicIPs() []string {
 		}
 	}
 	return out
+}
+
+func getPublicIP(ctx context.Context) string {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.ipify.org?format=text", nil)
+	if err != nil {
+		return ""
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	ip, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(ip))
 }

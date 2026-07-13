@@ -164,7 +164,7 @@ func (s *Session) wireCall(cm *call.CallManager, callID string) {
 				if s.mgr.chatMeta != nil {
 					_ = s.mgr.chatMeta.SetName(ctx, s.id, peer, name, time.Now().UnixMilli())
 				}
-				s.mgr.broker.emitIncoming(s.id, callID, peer, name, video)
+				s.mgr.broker.emitIncoming(s.id, callID, peer, name, s.callerPhone(peer), video)
 			}(c.CallID, c.PeerJid, c.MediaType == core.CallMediaTypeVideo)
 		}
 	}
