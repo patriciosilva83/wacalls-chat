@@ -27,14 +27,14 @@ let wired = false;
 // after the SSE list event already fired could leave the page blank until F5,
 // because the listener has nothing new to deliver.
 export const ensureSessionsWired = (): void => {
+  if (wired) return;
+  wired = true;
   eventStream.connect(getClientId());
   void listSessions()
     .then((sessions) =>
       useSessions.setState((s) => ({ sessions, activeId: pickActive(sessions, s.activeId) })),
     )
     .catch(() => {});
-  if (wired) return;
-  wired = true;
   eventStream.on((ev: BrokerEvent) => {
     if (ev.type === "session-list") {
       useSessions.setState((s) => {
