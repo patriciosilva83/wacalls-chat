@@ -304,6 +304,11 @@ func (m *CallManager) HandleCallTerminate(node *waBinary.Node) {
 			reason = core.EndCallReason(r)
 		}
 	}
+	if reason == "uncallable" {
+		m.log.Info("coex: ignorando reject reason=uncallable do device irmão para manter ring ativo", "call_id", call.CallID)
+		m.mu.Unlock()
+		return
+	}
 	m.log.Info("call terminated by peer", "call_id", call.CallID, "reason", string(reason))
 	_ = call.ApplyTransition(Transition{Type: TransitionTerminated, Reason: reason})
 	ended := call
