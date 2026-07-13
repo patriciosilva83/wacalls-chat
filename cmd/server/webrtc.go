@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
@@ -60,6 +61,13 @@ func buildBrowserAPI(udpPort int, externalIPs []string) (*webrtc.API, error) {
 func publicIPs() []string {
 	raw := strings.TrimSpace(os.Getenv("WACALLS_PUBLIC_IP"))
 	if raw == "" {
+		return nil
+	}
+	if strings.EqualFold(raw, "auto") {
+		resolved := getPublicIP(context.Background())
+		if resolved != "" && resolved != "127.0.0.1" {
+			return []string{resolved}
+		}
 		return nil
 	}
 	var out []string
