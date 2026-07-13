@@ -328,3 +328,19 @@ func (s *Socket) resolveLIDViaPhoneLookup(ctx context.Context, pn types.JID) (ty
 	}
 	return types.JID{}, false
 }
+
+// ResolvePNForLID resolve o JID de número real (Phone Number) a partir do JID de ID interno (LID).
+func (s *Socket) ResolvePNForLID(ctx context.Context, lid types.JID) types.JID {
+	if lid.Server != types.HiddenUserServer {
+		return lid
+	}
+	if s.cli == nil || s.cli.Store == nil {
+		return lid
+	}
+	if s.cli.Store.LIDs != nil {
+		if pn, err := s.cli.Store.LIDs.GetPNForLID(ctx, lid); err == nil && !pn.IsEmpty() {
+			return pn
+		}
+	}
+	return lid
+}
