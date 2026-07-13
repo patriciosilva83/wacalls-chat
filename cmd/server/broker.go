@@ -22,6 +22,7 @@ type CallRecord struct {
 	Owner     *string    `json:"owner"`
 	Direction string     `json:"direction"`
 	Peer      string     `json:"peer"`
+	Phone     string     `json:"phone,omitempty"`
 	StartedAt int64      `json:"startedAt"`
 	Status    CallStatus `json:"status"`
 	EndedAt   *int64     `json:"endedAt,omitempty"`
@@ -357,10 +358,10 @@ func (b *Broker) broadcastCallList() {
 	}
 }
 
-func (b *Broker) emitIncoming(sessionID, id, peer, peerName string, video bool) {
+func (b *Broker) emitIncoming(sessionID, id, peer, peerName, phone string, video bool) {
 	b.deliverScoped(sessionID, map[string]any{
 		"type": "incoming", "sessionId": sessionID, "id": id, "peer": peer,
-		"peerName": peerName,
+		"peerName": peerName, "phone": phone,
 		"video":    video, "offeredAt": time.Now().UnixMilli(),
 	})
 }

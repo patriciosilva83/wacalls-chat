@@ -66,6 +66,22 @@ type Session struct {
 	presenceOnce sync.Once
 }
 
+// callerPhone devolve o telefone real (só dígitos) do chamador a partir do JID/LID
+// da chamada de entrada, via ResolvePNForLID (mapeamento LID→telefone do whatsmeow).
+// Vazio quando não há mapping (ex.: chamador nunca interagido) — o CRM então trata
+// como contato só-LID e faz backfill quando uma mensagem trouxer o número.
+func (s *Session) callerPhone(peerJid string) string {
+	jid, err := types.ParseJID(peerJid)
+	if err != nil || jid.IsEmpty() {
+		return ""
+	}
+	pn := wa.NewSocket(s.client).ResolvePNForLID(context.Background(), jid)
+	if pn.Server == types.DefaultUserServer && pn.User != "" {
+		return pn.User
+	}
+	return ""
+}
+
 func newSession(mgr *SessionManager, id, name string, client *whatsmeow.Client) *Session {
 	s := &Session{
 		id:     id,
@@ -89,8 +105,9 @@ func (s *Session) createCall(callID string) *call.CallManager {
 
 func (s *Session) wireCall(cm *call.CallManager, callID string) {
 	cm.OnIncoming = func(c *call.CallInfo) {
+		phone := s.callerPhone(c.PeerJid)
 		s.mgr.broker.upsertCall(CallRecord{
-			SessionID: s.id, CallID: c.CallID, Direction: "inbound", Peer: c.PeerJid,
+			SessionID: s.id, CallID: c.CallID, Direction: "inbound", Peer: c.PeerJid, Phone: phone,
 			StartedAt: time.Now().UnixMilli(), Status: StatusRinging,
 		})
 		// Register lifecycle metadata + log a "Ligação recebida" pill in the
@@ -107,7 +124,7 @@ func (s *Session) wireCall(cm *call.CallManager, callID string) {
 		// Quando a URA vai atender automaticamente, NÃO mostramos o modal
 		// "Incoming call" para o operador — o atendimento é todo do fluxo.
 		if !auto {
-			s.mgr.broker.emitIncoming(s.id, c.CallID, c.PeerJid, peerName, c.MediaType == core.CallMediaTypeVideo)
+			s.mgr.broker.emitIncoming(s.id, c.CallID, c.PeerJid, peerName, phone, c.MediaType == core.CallMediaTypeVideo)
 		}
 		if auto {
 			// Avisa a UI que a URA assumiu (toast com número de origem e hora).
