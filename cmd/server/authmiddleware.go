@@ -3,21 +3,8 @@ package main
 import (
 	"context"
 	"net/http"
-	"os"
 	"strings"
 )
-
-// SuperAdminEmail identifies the SaaS owner account that has access to
-// global Settings (plans, whitelabel, options, companies management).
-// Regular admin users from other companies do NOT have this access.
-var SuperAdminEmail = getSuperAdminEmail()
-
-func getSuperAdminEmail() string {
-	if email := strings.TrimSpace(os.Getenv("WACALLS_SUPER_ADMIN_EMAIL")); email != "" {
-		return email
-	}
-	return "admin@equipechat.com"
-}
 
 type ctxKey int
 
@@ -39,8 +26,13 @@ type currentUser struct {
 	Permissions      []string
 	// ParentID is the tenant root this user belongs to ("" when the user
 	// is itself a tenant root or the super-admin).
-	ParentID string
+	ParentID     string
+	PlanFeatures string
 }
+
+const (
+	RoleAdmin = "admin"
+)
 
 func (u *currentUser) HasRole(r string) bool {
 	if u == nil {
@@ -56,14 +48,12 @@ func (u *currentUser) HasRole(r string) bool {
 
 func (u *currentUser) IsAdmin() bool { return u.HasRole(RoleAdmin) }
 
-// IsSuperAdmin returns true only for the SaaS owner account. The check is
-// based on the immutable seeded email so it cannot be escalated by simply
-// granting the admin role to another user.
+// IsSuperAdmin returns true only for users having the superadmin role in the database.
 func (u *currentUser) IsSuperAdmin() bool {
 	if u == nil {
 		return false
 	}
-	return strings.EqualFold(u.Email, SuperAdminEmail) && u.IsAdmin()
+	return u.HasRole("superadmin")
 }
 
 // TenantID returns the identifier of the tenant the user belongs to. For
@@ -114,6 +104,7 @@ func (s *server) resolveUser(r *http.Request) *currentUser {
 		AvatarURL:        u.AvatarURL,
 		Permissions:      u.Permissions,
 		ParentID:         u.ParentID,
+		PlanFeatures:     u.PlanFeatures,
 	}
 }
 
@@ -121,8 +112,8 @@ func (s *server) resolveUser(r *http.Request) *currentUser {
 func (s *server) requireAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u := s.resolveUser(r)
-		if u == nil {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		if u == nil || !u.Active {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "conta desativada, contate o administrador"})
 			return
 		}
 		ctx := context.WithValue(r.Context(), ctxUserKey, u)

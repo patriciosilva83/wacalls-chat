@@ -1272,7 +1272,7 @@ etapa_seed_admin() {
   local cred_file="/root/wacalls-credenciais.txt"
   local db_file="${APP_DIR}/wacalls.db"
   # Credenciais fixas do admin padrão do sistema
-  local admin_user="wacalls@admin.com"
+  local admin_user="admin@pontodosoftware.shop"
   local admin_pass="admin"
 
   # Garante ferramentas: sqlite3 CLI + htpasswd (bcrypt)
@@ -1313,10 +1313,12 @@ etapa_seed_admin() {
   # Insere ou atualiza o admin padrão para as credenciais fixas
   sqlite3 "${db_file}" <<SQL >/dev/null 2>&1
 INSERT INTO users (id, email, password_hash, created_at, company_name, cpf, active, display_name)
-VALUES ('${id}', '${admin_user}', '${hash}', ${now}, 'WaCalls', '', 1, 'Administrador')
+VALUES ('${id}', '${admin_user}', '${hash}', ${now}, 'Ponto do Software', '', 1, 'Administrador')
 ON CONFLICT(email) DO UPDATE SET password_hash='${hash}', active=1;
 INSERT OR IGNORE INTO user_roles (user_id, role)
 SELECT id, 'admin' FROM users WHERE email='${admin_user}';
+INSERT OR IGNORE INTO user_roles (user_id, role)
+SELECT id, 'superadmin' FROM users WHERE email='${admin_user}';
 SQL
   systemctl start "${APP_NAME}" 2>/dev/null || true
 
