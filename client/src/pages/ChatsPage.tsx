@@ -37,8 +37,10 @@ const EMPTY_CHATS: ChatSummary[] = [];
 
 export const ChatsPage = () => {
   const { t } = useTranslation();
-  ensureSessionsWired();
-  ensureChatsWired();
+  useEffect(() => {
+    ensureSessionsWired();
+    ensureChatsWired();
+  }, []);
 
   const sessions = useSessions((s) => s.sessions);
   const activeId = useSessions((s) => s.activeId);
