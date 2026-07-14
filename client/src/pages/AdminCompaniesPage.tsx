@@ -75,6 +75,17 @@ export function AdminCompaniesPage() {
   const [planPublic, setPlanPublic] = useState(true);
   const [planTrial, setPlanTrial] = useState(false);
   const [planTrialDays, setPlanTrialDays] = useState(7);
+  const [planFeatures, setPlanFeatures] = useState<Record<string, boolean>>({
+    kanban: true,
+    flows: true,
+    campaigns: true,
+    "quick-messages": true,
+    announcements: true,
+    "scheduled-messages": true,
+    reports: true,
+    billing: true,
+    agents: true,
+  });
 
   const loadAllSettings = async () => {
     setLoading(true);
@@ -121,7 +132,7 @@ export function AdminCompaniesPage() {
       trial: planTrial,
       diasTrial: Number(planTrialDays),
       ativo: true,
-      recursos: editingPlan?.recursos || {},
+      recursos: planFeatures,
     };
 
     setSaving(true);
@@ -134,6 +145,8 @@ export function AdminCompaniesPage() {
       }
       setPlanOpen(false);
       toast.success(t("common.save"));
+      // Force reload active plan store to reflect feature changes immediately
+      window.location.reload();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -152,6 +165,17 @@ export function AdminCompaniesPage() {
     setPlanPublic(true);
     setPlanTrial(false);
     setPlanTrialDays(7);
+    setPlanFeatures({
+      kanban: true,
+      flows: true,
+      campaigns: true,
+      "quick-messages": true,
+      announcements: true,
+      "scheduled-messages": true,
+      reports: true,
+      billing: true,
+      agents: true,
+    });
     setPlanOpen(true);
   };
 
@@ -166,6 +190,17 @@ export function AdminCompaniesPage() {
     setPlanPublic(p.publico);
     setPlanTrial(p.trial);
     setPlanTrialDays(p.diasTrial);
+    setPlanFeatures({
+      kanban: !!p.recursos?.kanban,
+      flows: !!p.recursos?.flows,
+      campaigns: !!p.recursos?.campaigns,
+      "quick-messages": !!p.recursos?.["quick-messages"],
+      announcements: !!p.recursos?.announcements,
+      "scheduled-messages": !!p.recursos?.["scheduled-messages"],
+      reports: !!p.recursos?.reports,
+      billing: !!p.recursos?.billing,
+      agents: !!p.recursos?.agents,
+    });
     setPlanOpen(true);
   };
 
@@ -779,6 +814,75 @@ export function AdminCompaniesPage() {
                   <Input type="number" value={planTrialDays} onChange={(e) => setPlanTrialDays(Number(e.target.value))} />
                 </div>
               )}
+
+              <div className="border-t pt-3 space-y-2">
+                <Label className="font-semibold text-xs">Recursos Habilitados no Plano</Label>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[10px]">
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Kanban</Label>
+                    <Switch
+                      checked={planFeatures.kanban}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, kanban: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">FlowBuilder</Label>
+                    <Switch
+                      checked={planFeatures.flows}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, flows: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Campanhas</Label>
+                    <Switch
+                      checked={planFeatures.campaigns}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, campaigns: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Respostas Rápidas</Label>
+                    <Switch
+                      checked={planFeatures["quick-messages"]}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, "quick-messages": val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Mural de Avisos</Label>
+                    <Switch
+                      checked={planFeatures.announcements}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, announcements: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Agendamentos</Label>
+                    <Switch
+                      checked={planFeatures["scheduled-messages"]}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, "scheduled-messages": val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Relatórios</Label>
+                    <Switch
+                      checked={planFeatures.reports}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, reports: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40">
+                    <Label className="cursor-pointer font-medium text-[10px]">Financeiro</Label>
+                    <Switch
+                      checked={planFeatures.billing}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, billing: val })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between border rounded p-1.5 bg-card/40 col-span-2">
+                    <Label className="cursor-pointer font-medium text-[10px]">Agentes IA</Label>
+                    <Switch
+                      checked={planFeatures.agents}
+                      onCheckedChange={(val) => setPlanFeatures({ ...planFeatures, agents: val })}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <DialogFooter className="pt-2">
                 <Button type="button" variant="outline" onClick={() => setPlanOpen(false)}>
