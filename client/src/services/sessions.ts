@@ -90,3 +90,36 @@ export type AccountHealth = {
 
 export const fetchAccountHealth = (id: string) =>
   apiGet<AccountHealth>(`/api/sessions/${id}/health`);
+
+/* ------------- WhatsApp Cloud API (API Oficial) ------------- */
+
+export type CloudConfig = {
+  id: string;
+  mode: "whatsmeow" | "cloud";
+  phoneId: string;
+  wabaId: string;
+  verifyToken: string;
+  webhookUrl: string;
+  hasToken: boolean;
+  hasAppSecret: boolean;
+};
+
+export const getCloudConfig = (id: string) =>
+  apiGet<CloudConfig>(`/api/sessions/${id}/cloud`);
+
+export type EnableCloudReq = {
+  phoneId: string;
+  wabaId: string;
+  token: string;
+  appSecret?: string;
+};
+
+export const enableCloud = (id: string, body: EnableCloudReq) =>
+  apiPost<{ ok: boolean; mode: string; webhookUrl: string; verifyToken: string }>(
+    `/api/sessions/${id}/cloud/enable`,
+    body
+  );
+
+export const disableCloud = (id: string) =>
+  apiPost<{ ok: boolean; mode: string }>(`/api/sessions/${id}/cloud/disable`, {});
+

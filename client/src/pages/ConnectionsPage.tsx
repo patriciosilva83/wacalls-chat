@@ -25,6 +25,7 @@ import { QRDialog } from "@/components/domain/session/QRDialog";
 import { DisconnectDialog } from "@/components/domain/session/DisconnectDialog";
 import { PaymentDialog } from "@/components/domain/session/PaymentDialog";
 import { AccountHealthDialog } from "@/components/domain/session/AccountHealthDialog";
+import { CloudConfigDialog } from "@/components/domain/session/CloudConfigDialog";
 import { deleteSession, pairSession } from "@/services/sessions";
 import { ensureSessionsWired, useSessions } from "@/stores/sessions";
 import type { SessionInfo } from "@/types/session";
@@ -51,6 +52,7 @@ const InstanceRow = ({
   onPay,
   onRestart,
   onDelete,
+  onCloudConfig,
 }: {
   s: SessionInfo;
   onConfigure: () => void;
@@ -59,6 +61,7 @@ const InstanceRow = ({
   onPay: () => void;
   onRestart: () => void;
   onDelete: () => void;
+  onCloudConfig: () => void;
 }) => {
   const { t } = useTranslation();
   const plan = getInstancePlan(s.id);
@@ -180,6 +183,14 @@ const InstanceRow = ({
           <Button size="sm" variant="outline" onClick={onConfigure}>
             <Settings2 className="h-3.5 w-3.5" /> {t("actions.configure")}
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+            onClick={onCloudConfig}
+          >
+            <Code2 className="h-3.5 w-3.5" /> API Oficial
+          </Button>
           {isConnected ? (
             <>
               <Button size="sm" variant="outline" onClick={onRestart}>
@@ -261,6 +272,7 @@ export const ConnectionsPage = () => {
   const [disconnectFor, setDisconnectFor] = useState<SessionInfo | null>(null);
   const [payFor, setPayFor] = useState<SessionInfo | null>(null);
   const [editFor, setEditFor] = useState<SessionInfo | null>(null);
+  const [cloudFor, setCloudFor] = useState<SessionInfo | null>(null);
 
   useEffect(() => {
     ensureSessionsWired();
@@ -309,6 +321,7 @@ export const ConnectionsPage = () => {
                     .catch((e) => toast.error((e as Error).message))
                 }
                 onDelete={() => setToDelete(s)}
+                onCloudConfig={() => setCloudFor(s)}
               />
             ))}
           </div>
@@ -353,6 +366,14 @@ export const ConnectionsPage = () => {
           open={!!editFor}
           onOpenChange={(o) => !o && setEditFor(null)}
           session={editFor}
+        />
+      )}
+      {cloudFor && (
+        <CloudConfigDialog
+          open={!!cloudFor}
+          onOpenChange={(o) => !o && setCloudFor(null)}
+          session={cloudFor}
+          onUpdated={ensureSessionsWired}
         />
       )}
       <ConfirmDialog
