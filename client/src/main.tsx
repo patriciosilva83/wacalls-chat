@@ -22,6 +22,7 @@ const BillingPage = lazy(() => import("./pages/BillingPage"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 const KanbanPage = lazy(() => import("./pages/KanbanPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
+const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -55,6 +56,7 @@ const Root = () => {
               <Route path="/chats" element={<RequireAuth><ChatsPage /></RequireAuth>} />
               <Route path="/connections" element={<RequireAuth><ConnectionsPage /></RequireAuth>} />
               <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
+              <Route path="/history" element={<RequireAuth><HistoryPage /></RequireAuth>} />
               <Route path="/contacts" element={<RequireAuth><ContactsPage /></RequireAuth>} />
               <Route path="/queues" element={<RequireAuth><QueuesPage /></RequireAuth>} />
               <Route path="/tags" element={<RequireAuth><TagsPage /></RequireAuth>} />

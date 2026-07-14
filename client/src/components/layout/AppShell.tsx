@@ -135,6 +135,7 @@ const AppShellInner = ({ children }: { children: ReactNode }) => {
     { to: "/scheduled-messages", icon: CalendarClock, label: t("nav.scheduled", { defaultValue: "Agendamentos" }), perm: "chats", feat: "scheduled-messages" },
     { to: "/connections", icon: Wifi, label: t("nav.connections", { defaultValue: "Conexões" }), perm: "connections" },
     { to: "/reports", icon: BarChart3, label: t("nav.reports", { defaultValue: "Relatórios" }), perm: "chats", feat: "reports" },
+    { to: "/history", icon: History, label: t("nav.history", { defaultValue: "Histórico" }), perm: "chats" },
   ];
   const aplicacoes: (NavItem & { perm: Permission; feat?: string })[] = [
     { to: "/billing", icon: ShoppingCart, label: t("nav.billing", { defaultValue: "Financeiro" }), perm: "chats", feat: "billing" },
