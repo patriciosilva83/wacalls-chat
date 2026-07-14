@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Phone, PhoneOff, X, Delete, Users, History, Search, Loader2 } from "lucide-react";
+import { Phone, PhoneOff, X, Delete, Users, History, Search, Loader2, Video } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ export const DialerPanel = () => {
   const [contactsLoading, setContactsLoading] = useState(false);
   const [history, setHistory] = useState<CallHistoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [recordCall, setRecordCall] = useState(false);
   const micId = useDevices((s) => s.micId);
   const outId = useDevices((s) => s.outId);
 
@@ -119,7 +120,11 @@ export const DialerPanel = () => {
   const digits = useMemo(() => phone.replace(/\D/g, ""), [phone]);
   const canCall = !!sessionId && digits.length >= 8 && !startCall.isPending;
 
-  const handleCall = (overridePhone?: string, overrideSessionId?: string) => {
+  const handleCall = (
+    overridePhone?: string,
+    overrideSessionId?: string,
+    videoCall = false
+  ) => {
     const d = (overridePhone ?? digits).replace(/\D/g, "");
     const sid = overrideSessionId || sessionId;
     if (!sid || d.length < 8 || startCall.isPending) return;
@@ -128,10 +133,10 @@ export const DialerPanel = () => {
     }
     // useStartCall closes over sessionId at hook init; call directly via mutate
     startCall.mutate(
-      { phone: d, record: false, video: false },
+      { phone: d, record: recordCall, video: videoCall },
       {
         onSuccess: () => {
-          toast.success("Chamando...");
+          toast.success(videoCall ? "Iniciando chamada de vídeo..." : "Chamando...");
           close();
         },
       },
@@ -258,33 +263,71 @@ export const DialerPanel = () => {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between gap-2">
+              {/* Record Call Switch Toggle */}
+              <div className="flex items-center justify-between border bg-muted/10 rounded-lg p-2 text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full bg-rose-500 ${recordCall ? "animate-pulse" : "opacity-40"}`} />
+                  <span className="font-semibold text-muted-foreground">Gravar Chamada</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRecordCall(!recordCall)}
+                  className={`relative inline-flex h-4 w-8 shrink-0 items-center rounded-full transition ${
+                    recordCall ? "bg-rose-500" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition ${
+                      recordCall ? "translate-x-4.5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Dialer bottom actions */}
+              <div className="flex items-center justify-between gap-1.5">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
+                  className="h-11 w-11 shrink-0"
                   onClick={backspace}
                   aria-label="Apagar"
                 >
-                  <Delete className="h-5 w-5" />
+                  <Delete className="h-4 w-4" />
                 </Button>
+                
+                {/* Voice Call */}
                 <Button
                   type="button"
-                  className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-500 text-white"
-                  onClick={() => handleCall()}
+                  className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-2"
+                  onClick={() => handleCall(undefined, undefined, false)}
                   disabled={!canCall}
                 >
-                  <Phone className="mr-2 h-4 w-4" />
-                  {startCall.isPending ? "Chamando..." : "Ligar"}
+                  <Phone className="mr-1 h-3.5 w-3.5" />
+                  Voz
                 </Button>
+
+                {/* Video Call */}
                 <Button
                   type="button"
-                  variant="ghost"
+                  className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-2"
+                  onClick={() => handleCall(undefined, undefined, true)}
+                  disabled={!canCall}
+                >
+                  <Video className="mr-1 h-3.5 w-3.5" />
+                  Vídeo
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
                   size="icon"
+                  className="h-11 w-11 shrink-0 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
                   onClick={close}
                   aria-label="Cancelar"
                 >
-                  <PhoneOff className="h-5 w-5 text-rose-500" />
+                  <PhoneOff className="h-4 w-4" />
                 </Button>
               </div>
             </>
