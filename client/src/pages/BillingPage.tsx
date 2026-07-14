@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as billingApi from "@/services/billing";
+import * as settingsApi from "@/services/settings";
 
 export default function BillingPage() {
   const { t } = useTranslation();
@@ -17,6 +18,7 @@ export default function BillingPage() {
   const [sub, setSub] = useState<billingApi.Subscription | null>(null);
   const [freeTier, setFreeTier] = useState<billingApi.FreeTierStatus | null>(null);
   const [limits, setLimits] = useState<billingApi.FreeTierLimits | null>(null);
+  const [planUsage, setPlanUsage] = useState<settingsApi.PlanUsage | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -25,14 +27,16 @@ export default function BillingPage() {
   const loadBilling = async () => {
     setLoading(true);
     try {
-      const [subData, freeData, limitData] = await Promise.all([
+      const [subData, freeData, limitData, planUsageData] = await Promise.all([
         billingApi.getSubscription().catch(() => null),
         billingApi.getFreeTier().catch(() => null),
         billingApi.getFreeTierLimits().catch(() => null),
+        settingsApi.getPlanUsage().catch(() => null),
       ]);
       setSub(subData);
       setFreeTier(freeData);
       setLimits(limitData);
+      setPlanUsage(planUsageData);
       if (subData) {
         setInstancesQuantity(subData.quantity || 2);
       }
@@ -183,6 +187,73 @@ export default function BillingPage() {
                         style={{ width: `${getPercentage(freeTier.callsUsed, freeTier.callsLimit)}%` }}
                       />
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Plan limits usage progress */}
+              {planUsage && (
+                <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
+                  <h3 className="font-semibold text-sm">Limites e Recursos do Plano</h3>
+                  
+                  {/* Users limit */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Operadores Ativos</span>
+                      <span>
+                        {planUsage.usage.usuarios} / {planUsage.limits.usuarios === 0 ? "∞" : planUsage.limits.usuarios}
+                      </span>
+                    </div>
+                    {planUsage.limits.usuarios > 0 ? (
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${getPercentage(planUsage.usage.usuarios, planUsage.limits.usuarios)}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground font-semibold">Sem limite de operadores</p>
+                    )}
+                  </div>
+
+                  {/* Connections limit */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Conexões WhatsApp</span>
+                      <span>
+                        {planUsage.usage.conexoes} / {planUsage.limits.conexoes === 0 ? "∞" : planUsage.limits.conexoes}
+                      </span>
+                    </div>
+                    {planUsage.limits.conexoes > 0 ? (
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${getPercentage(planUsage.usage.conexoes, planUsage.limits.conexoes)}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground font-semibold">Sem limite de conexões</p>
+                    )}
+                  </div>
+
+                  {/* Queues limit */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Filas de Atendimento</span>
+                      <span>
+                        {planUsage.usage.filas} / {planUsage.limits.filas === 0 ? "∞" : planUsage.limits.filas}
+                      </span>
+                    </div>
+                    {planUsage.limits.filas > 0 ? (
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${getPercentage(planUsage.usage.filas, planUsage.limits.filas)}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground font-semibold">Sem limite de filas</p>
+                    )}
                   </div>
                 </div>
               )}
