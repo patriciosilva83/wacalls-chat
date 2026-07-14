@@ -549,9 +549,15 @@ export function AdminCompaniesPage() {
             <TabsContent value="whitelabel" className="flex-1 overflow-y-auto pt-4 space-y-4 max-w-lg">
               {whitelabel && (
                 <form onSubmit={handleSaveWhitelabel} className="space-y-4 text-xs">
-                  <div className="space-y-1">
-                    <Label>Nome do Aplicativo</Label>
-                    <Input value={whitelabel.appName || ""} onChange={(e) => setWhitelabel({ ...whitelabel, appName: e.target.value })} required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label>Nome do Aplicativo (Web)</Label>
+                      <Input value={whitelabel.appName || ""} onChange={(e) => setWhitelabel({ ...whitelabel, appName: e.target.value })} required />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Nome do Aplicativo (Mobile)</Label>
+                      <Input value={whitelabel.appNameMobile || ""} onChange={(e) => setWhitelabel({ ...whitelabel, appNameMobile: e.target.value })} />
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -569,18 +575,95 @@ export function AdminCompaniesPage() {
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="space-y-1.5">
                       <Label>Favicon</Label>
+                      {whitelabel.favicon && (
+                        <div className="mb-1">
+                          <img src={whitelabel.favicon} className="h-6 w-6 object-contain border rounded p-0.5 bg-muted/40" alt="Favicon preview" />
+                        </div>
+                      )}
                       <Input type="file" accept="image/*" onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) void handleLogoUpload("favicon", file);
                       }} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Logo do Painel</Label>
+                      <Label>Logo do Painel (Clara)</Label>
+                      {whitelabel.logoLight && (
+                        <div className="mb-1">
+                          <img src={whitelabel.logoLight} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Logo clara preview" />
+                        </div>
+                      )}
                       <Input type="file" accept="image/*" onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) void handleLogoUpload("logoLight", file);
                       }} />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Logo do Painel (Escura)</Label>
+                      {whitelabel.logoDark && (
+                        <div className="mb-1">
+                          <img src={whitelabel.logoDark} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Logo escura preview" />
+                        </div>
+                      )}
+                      <Input type="file" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleLogoUpload("logoDark", file);
+                      }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Logo Mobile</Label>
+                      {whitelabel.logoMobile && (
+                        <div className="mb-1">
+                          <img src={whitelabel.logoMobile} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Logo mobile preview" />
+                        </div>
+                      )}
+                      <Input type="file" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleLogoUpload("logoMobile", file);
+                      }} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Fundo (Tema Claro)</Label>
+                      {whitelabel.bgLight && (
+                        <div className="mb-1">
+                          <img src={whitelabel.bgLight} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Fundo claro preview" />
+                        </div>
+                      )}
+                      <Input type="file" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleLogoUpload("bgLight", file);
+                      }} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Fundo (Tema Escuro)</Label>
+                      {whitelabel.bgDark && (
+                        <div className="mb-1">
+                          <img src={whitelabel.bgDark} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Fundo escuro preview" />
+                        </div>
+                      )}
+                      <Input type="file" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleLogoUpload("bgDark", file);
+                      }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Imagem de Splash Screen</Label>
+                    {whitelabel.splash && (
+                      <div className="mb-1">
+                        <img src={whitelabel.splash} className="h-6 max-w-[100px] object-contain border rounded p-0.5 bg-muted/40" alt="Splash preview" />
+                      </div>
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleLogoUpload("splash", file);
+                    }} />
                   </div>
 
                   <div className="pt-2">
