@@ -39,6 +39,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 import type { Plan, Options, SmtpConfig, Whitelabel, GoogleOAuthAdmin } from "@/services/settings";
 import * as settingsApi from "@/services/settings";
+import * as billingApi from "@/services/billing";
 
 export function AdminCompaniesPage() {
   const { t } = useTranslation();
@@ -51,6 +52,8 @@ export function AdminCompaniesPage() {
   const [smtp, setSmtp] = useState<SmtpConfig | null>(null);
   const [whitelabel, setWhitelabel] = useState<Whitelabel | null>(null);
   const [oauth, setOauth] = useState<GoogleOAuthAdmin | null>(null);
+  const [freeLimits, setFreeLimits] = useState<billingApi.FreeTierLimits | null>(null);
+  const [savingFreeLimits, setSavingFreeLimits] = useState(false);
 
   // Plan Dialog States
   const [planOpen, setPlanOpen] = useState(false);
@@ -76,18 +79,20 @@ export function AdminCompaniesPage() {
   const loadAllSettings = async () => {
     setLoading(true);
     try {
-      const [pList, optsData, smtpData, wlData, oauthData] = await Promise.all([
+      const [pList, optsData, smtpData, wlData, oauthData, limitsData] = await Promise.all([
         settingsApi.listPlans().catch(() => []),
         settingsApi.getOptions().catch(() => null),
         settingsApi.getSMTP().catch(() => null),
         settingsApi.getWhitelabel().catch(() => null),
         settingsApi.getGoogleOAuth().catch(() => null),
+        billingApi.getFreeTierLimits().catch(() => null),
       ]);
       setPlans(pList);
       setOptions(optsData);
       setSmtp(smtpData);
       setWhitelabel(wlData);
       setOauth(oauthData);
+      setFreeLimits(limitsData);
     } catch (e) {
       toast.error("Erro ao carregar configurações: " + (e as Error).message);
     } finally {
@@ -426,6 +431,72 @@ export function AdminCompaniesPage() {
                         checked={!!options.transcriptionEnabled}
                         onCheckedChange={(val) => handleSaveOptions({ transcriptionEnabled: val })}
                       />
+                    </div>
+
+                    <div className="border-t pt-6 space-y-4">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-semibold">Limites do Plano Gratuito (Free Tier)</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Ajuste as quotas de conexões e limites semanais para contas gratuitas.
+                        </p>
+                      </div>
+                      
+                      {freeLimits && (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            setSavingFreeLimits(true);
+                            try {
+                              await billingApi.saveFreeTierLimits(freeLimits);
+                              toast.success("Limites do plano gratuito atualizados!");
+                            } catch (err) {
+                              toast.error("Erro ao salvar limites: " + (err as Error).message);
+                            } finally {
+                              setSavingFreeLimits(false);
+                            }
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <Label>Conexões Zap</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={freeLimits.connections}
+                                onChange={(e) => setFreeLimits({ ...freeLimits, connections: Number(e.target.value) })}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label>Ligações / Semana</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={freeLimits.callsWeek}
+                                onChange={(e) => setFreeLimits({ ...freeLimits, callsWeek: Number(e.target.value) })}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label>Conversas / Semana</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={freeLimits.chatsWeek}
+                                onChange={(e) => setFreeLimits({ ...freeLimits, chatsWeek: Number(e.target.value) })}
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end pt-2">
+                            <Button type="submit" size="sm" disabled={savingFreeLimits}>
+                              {savingFreeLimits && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                              Salvar Limites
+                            </Button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </div>
